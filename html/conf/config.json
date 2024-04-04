@@ -1,0 +1,51 @@
+{
+    "system": {
+        "cfgver": 1,
+        "device": {
+            "id": "ESPixelStick",
+            "blanktime": 5,
+            "miso_pin": 12,
+            "mosi_pin": 13,
+            "clock_pin": 14,
+            "cs_pin": 15
+        },
+        "network": {
+            "hostname": "ESPixelStick",
+            "wifi": {
+                "ssid": "",
+                "passphrase": "",
+                "ap_ssid": "ESPixelStick-AP",
+                "ap_passphrase": "",
+                "ip": "0.0.0.0",
+                "netmask": "0.0.0.0",
+                "gateway": "0.0.0.0",
+                "dnsp": "0.0.0.0",
+                "dnss": "0.0.0.0",
+                "StayInApMode": false,
+                "dhcp": true,
+                "sta_timeout": 15,
+                "ap_channel": 1,
+                "ap_fallback": true,
+                "ap_timeout": 120,
+                "ap_reboot": false
+            },
+            "weus": true,
+            "eth": {
+                "ip": "0.0.0.0",
+                "netmask": "0.0.0.0",
+                "gateway": "0.0.0.0",
+                "dnsp": "0.0.0.0",
+                "dnss": "0.0.0.0",
+                "dhcp": true,
+                "type": 0,
+                "addr": 1,
+                "power_pin": 15,
+                "mode": 0,
+                "mdc_pin": 23,
+                "mdio_pin": 18,
+                "activevalue": true,
+                "activedelay": 1000
+            }
+        }
+    }
+}
