@@ -7,7 +7,22 @@
     </head>
 
     <body>
-        <div class="container">
+        <class="container">
+            <!-- Board Configuration -->
+            <div id="pg_board" class="mdiv anchor">
+                <form class="form-horizontal">
+                    <legend class="esps-legend">Board</legend>
+                    <div class="form-group">
+                        <label class="control-label col-sm-2" for="BoardSelector">Platform</label>
+                        <div class="col-sm-6">
+                            <fieldset id="fs_board">
+                                <select id="BoardSelector"></select>
+                            </fieldset>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
             <!-- Basic Configuration -->
             <div id="pg_network" class="mdiv anchor">
                 <form class="form-horizontal">
@@ -302,7 +317,5 @@
         <script type="text/javascript" src="js/bootstrap.js"></script>
         <script type="text/javascript" src="js/jquery.cookie.js"></script>
         <script type="text/javascript" src="js/EspsWebFlashTool.js"></script>
-
     </body>
-
 </html>

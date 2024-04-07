@@ -6,6 +6,7 @@ var DiagTimer = null;
 
 // global data
 var System_Config = null;
+var Firmware_Boards = null;
 var selector = [];
 var target = document.location.host;
 // target = "192.168.10.233";
@@ -69,14 +70,15 @@ const ServerAccess = new Semaphore(1);
 
 // lets get started
 // MonitorServerConnection();
+RequestFirmwareFile();
 RequestConfigFile("config.json");
 
 // jQuery doc ready
 $(function () 
 {
-
     // DHCP field toggles
     $('#wifi #dhcp').on("change", (function () {
+        // console.info("Got #wifi #dhcp Change Notification")
         if ($(this).is(':checked')) {
             $('.wifiDhcp').addClass('hidden');
         }
@@ -87,6 +89,7 @@ $(function ()
     }));
 
     $('#eth #dhcp').on("change", (function () {
+        // console.info("Got #eth #dhcp Change Notification")
         if ($(this).is(':checked')) {
             $('.ethdhcp').addClass('hidden');
         }
@@ -114,23 +117,6 @@ $(function ()
     });
 
 });
-
-
-function UpdateAdvancedOptionsMode(){
-    // console.info("UpdateAdvancedOptionsMode");
-
-    let am = $('#AdvancedOptions');
-    let AdvancedModeState = am.prop("checked");
-
-    $(".AdvancedMode").each(function () {
-        if (true === AdvancedModeState) {
-            $(this).removeClass("hidden");
-        }
-        else {
-            $(this).addClass("hidden");
-        }
-    });
-} // UpdateAdvancedOptionsMode
 
 async function SendConfigFileToServer(FileName = "", DataString = "")
 {
@@ -177,57 +163,28 @@ async function RequestConfigFile(FileName)
 
 } // RequestConfigFile
 
-
-function ParseParameter(name) {
-    return (location.search.split(name + '=')[1] || '').split('&')[0];
-} // ParseParameter
-
-function UUID() {
-    var uuid = (function () {
-        var i,
-            c = "89ab",
-            u = [];
-        for (i = 0; i < 36; i += 1) {
-            u[i] = (Math.random() * 16 | 0).toString(16);
-        }
-        u[8] = u[13] = u[18] = u[23] = "-";
-        u[14] = "4";
-        u[19] = c.charAt(Math.random() * 4 | 0);
-        return u.join("");
-    })();
-    return {
-        toString: function () {
-            return uuid;
-        },
-        valueOf: function () {
-            return uuid;
-        }
-    };
-} // UUID
-
 function ProcessReceivedJsonConfigMessage(JsonConfigData) {
     // console.info("ProcessReceivedJsonConfigMessage: Start");
 
-    // is this an output config?
-    if ({}.hasOwnProperty.call(JsonConfigData, "output_config")) {
-        // save the config for later use.
-        Output_Config = JsonConfigData.output_config;
-        CreateOptionsFromConfig("output", Output_Config);
-    }
-
-    // is this an input config?
-    else if ({}.hasOwnProperty.call(JsonConfigData, "input_config")) {
-        // save the config for later use.
-        Input_Config = JsonConfigData.input_config;
-        CreateOptionsFromConfig("input", Input_Config);
-    }
-
     // is this a device config?
-    else if ({}.hasOwnProperty.call(JsonConfigData, "system")) {
+    if ({}.hasOwnProperty.call(JsonConfigData, "system")) {
         System_Config = JsonConfigData.system;
         // console.info("Got System Config: " + JSON.stringify(System_Config) );
 
         updateFromJSON(System_Config);
+        if ($('#wifi #dhcp').is(':checked')) {
+            $('.wifiDhcp').addClass('hidden');
+        }
+        else {
+            $('.wifiDhcp').removeClass('hidden');
+        }
+
+        if ($('#eth #dhcp').is(':checked')) {
+            $('.ethdhcp').addClass('hidden');
+        }
+        else {
+            $('.ethdhcp').removeClass('hidden');
+        }
 
         if ({}.hasOwnProperty.call(System_Config.network, 'eth')) {
             $('#pg_network #network #eth').removeClass("hidden")
@@ -245,16 +202,6 @@ function ProcessReceivedJsonConfigMessage(JsonConfigData) {
         }
     }
 
-    // is this a file list?
-    else if ({}.hasOwnProperty.call(JsonConfigData, "files")) {
-        ProcessGetFileListResponse(JsonConfigData);
-    }
-
-    // is this an admin msg?
-    else if ({}.hasOwnProperty.call(JsonConfigData, "admin")) {
-        ProcessReceivedJsonAdminMessage(JsonConfigData);
-    }
-
     // is this an ACK response?
     else if ({}.hasOwnProperty.call(JsonConfigData, "OK")) {
         // console.info("Received Acknowledgement to config set command.")
@@ -267,6 +214,52 @@ function ProcessReceivedJsonConfigMessage(JsonConfigData) {
 
     // console.info("ProcessReceivedJsonConfigMessage: Done");
 
+} // ProcessReceivedJsonConfigMessage
+
+async function RequestFirmwareFile()
+{
+    // console.log("RequestFirmwareFile FileName: firmware.json");
+    let data = "";
+    await $.getJSON("HTTP://" + target + "/conf/firmware.json", function(data)
+    {
+        // console.log("RequestConfigFile: " + JSON.stringify(data));
+        ProcessReceivedJsonFirmwareMessage(data);
+        return true;
+    })
+    .fail(function()
+    {
+        console.error("Could not read Firmware file: 'firmware.json");
+        return false;
+    });
+
+} // RequestFirmwareFile
+
+function ProcessReceivedJsonFirmwareMessage(JsonData) {
+    // console.info("ProcessReceivedJsonFirmwareMessage: Start");
+
+    // is this a board config?
+    if ({}.hasOwnProperty.call(JsonData, "boards")) {
+        Firmware_Boards = JsonData.boards;
+        // console.info("Got Firmware Config: " + JSON.stringify(Firmware_Boards) );
+
+        // iterate the list of boards and 
+        // build selection list
+        $.each (Firmware_Boards, function (index, CurrentBoard)
+        {
+            $('<option/>', { value : CurrentBoard.name }).text(CurrentBoard.name).appendTo('#BoardSelector');
+            // console.info("CurrentBoard: '" + CurrentBoard.name + "'");
+        });
+    }
+
+    // is this an ACK response?
+    else if ({}.hasOwnProperty.call(JsonData, "OK")) {
+        // console.info("Received Acknowledgement to Firmware set command.")
+    }
+
+    else {
+        console.error("unknown Firmware record type has been ignored.")
+    }
+    // console.info("ProcessReceivedJsonFirmwareMessage: Done");
 } // ProcessReceivedJsonConfigMessage
 
 // Builds jQuery selectors from JSON data and updates the web interface
@@ -295,60 +288,6 @@ function updateFromJSON(obj) {
     // Update Device ID in footer
     $('#device-id').text($('#config #id').val());
 } // updateFromJSON
-
-
-function CreateOptionsFromConfig(OptionListName, Config) {
-    // console.info("CreateOptionsFromConfig");
-
-    // Set selection column width based on arch which equates to number of outputs for now
-    let col = (AdminInfo.arch === 'ESP8266') ? '4' : '2';
-    let Channels = Config.channels;
-
-    if ("input" === OptionListName) {
-        $('#ecpin').val(Config.ecpin);
-    }
-
-    // for each field we need to populate (input vs output)
-    Object.keys(Channels).forEach(function (ChannelId) {
-        // OptionListName is 'input' or 'output'
-        // console.info("ChannelId: " + ChannelId);
-        let CurrentChannel = Channels[ChannelId];
-
-        // does the selection box we need already exist?
-        if (!$('#' + OptionListName + 'mode' + ChannelId).length) {
-            // console.log(`OptionListName: ${OptionListName}`)
-            // create the selection box
-            $(`#fg_${OptionListName}`).append(`<label class="control-label col-sm-2" for="${OptionListName}${ChannelId}">${GenerateInputOutputControlLabel(OptionListName, ChannelId)}</label>`);
-            $(`#fg_${OptionListName}`).append(`<div class="col-sm-${col}"><select class="form-control wsopt" id="${OptionListName}${ChannelId}"></select></div>`);
-            $(`#fg_${OptionListName}_mode`).append(`<fieldset id="${OptionListName}mode${ChannelId}"></fieldset>`);
-
-        }
-
-        let jqSelector = "#" + OptionListName + ChannelId;
-
-        // remove the existing options
-        $(jqSelector).empty();
-
-        // for each Channel type in the list
-        Object.keys(CurrentChannel).forEach(function (SelectionTypeId) {
-            // console.info("SelectionId: " + SelectionTypeId);
-            if ("type" === SelectionTypeId) {
-                // console.info("Set the selector type to: " + CurrentChannel.type);
-                $(jqSelector).val(CurrentChannel.type);
-                LoadDeviceSetupSelectedOption(OptionListName, ChannelId);
-                $(jqSelector).change(function () {
-                    // console.info("Set the selector type to: " + CurrentChannel.type);
-                    LoadDeviceSetupSelectedOption(OptionListName, ChannelId);
-                });
-            }
-            else {
-                let CurrentSection = CurrentChannel[SelectionTypeId];
-                // console.info("Add '" + CurrentSection.type + "' to selector");
-                $(jqSelector).append('<option value="' + SelectionTypeId + '">' + CurrentSection.type + '</option>');
-            }
-        }); // end for each selection type
-    }); // end for each channel
-} // CreateOptionsFromConfig
 
 // Builds JSON config submission for "WiFi" tab
 function ExtractNetworkWiFiConfigFromHtmlPage() {
@@ -418,17 +357,6 @@ function submitNetworkConfig() {
 
 } // submitNetworkConfig
 
-function hexToRgb(hex) {
-    // console.info("hex: " + hex);
-    while (hex.length < 7) { hex = hex.replace("#", "#0"); }
-    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-    } : null;
-} // hexToRgb
-
 function ValidateConfigFields(ElementList) {
     // return true if errors were found
     let response = false;
@@ -452,15 +380,6 @@ function ValidateConfigFields(ElementList) {
     return response;
 
 } // ValidateConfigFields
-
-function int2ip(num) {
-    let d = num % 256;
-    for (let i = 3; i > 0; i--) {
-        num = Math.floor(num / 256);
-        d = d + '.' + num % 256;
-    }
-    return d;
-} // int2ip
 
 // Ping every 4sec
 function MonitorServerConnection() 
@@ -492,20 +411,11 @@ function MonitorServerConnection()
     }
 } // MonitorServerConnection
 
-// Show reboot modal
-function showReboot() {
+// Show flash modal
+function showFlash() {
     $("#EfuProgressBar").addClass("hidden");
-    $('#update').modal('hide');
-    $('#reboot').modal();
-    setTimeout(function () {
-        if ($('#wifi #dhcp').prop('checked')) {
-            window.location.assign("/");
-        }
-        else {
-            window.location.assign("http://" + $('#ip').val());
-        }
-    }, 5000);
-} // showReboot
+    $('#flashdevice').modal();
+} // showFlash
 
 async function SendCommand(command)
 {
