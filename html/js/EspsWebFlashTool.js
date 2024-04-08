@@ -250,6 +250,12 @@ function ProcessReceivedJsonFirmwareMessage(JsonData) {
             $('<option/>', { value : CurrentBoard.name }).text(CurrentBoard.name).appendTo('#BoardSelector');
             // console.info("CurrentBoard: '" + CurrentBoard.name + "'");
         });
+
+        // now sort the options
+        $("#BoardSelector").html($("#BoardSelector option").sort(function (a, b)
+        {
+            return a.text == b.text ? 0 : a.text < b.text ? -1 : 1
+        }));
     }
 
     // is this an ACK response?
@@ -360,6 +366,9 @@ function submitNetworkConfig() {
 
 function GetFlashImage()
 {
+    // establish a session
+    // let Response = await SendCommand('/api/1/session');
+
     // save the config for this user
     // Ask the server to create an image and manifest
     // Ask for the manifest
