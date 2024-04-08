@@ -105,7 +105,7 @@ $(function ()
 
     $('#btn_flash').on("click", (function () {
         // submitNetworkConfig();
-        // GetFlashImage();
+        GetFlashImage();
     }));
 
     // Halt server health check if document is not visible
@@ -364,10 +364,12 @@ function submitNetworkConfig() {
 
 } // submitNetworkConfig
 
-function GetFlashImage()
+async function GetFlashImage()
 {
+    console.info("Set up manifest");
     // establish a session
-    // let Response = await SendCommand('/api/1/session');
+    let Response = await SendCommand('api/1/session');
+    console.info("Response: '" + Response + "'");
 
     // save the config for this user
     // Ask the server to create an image and manifest

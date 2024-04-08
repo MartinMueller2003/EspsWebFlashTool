@@ -12,22 +12,15 @@ app.use(bodyParser.urlencoded({  extended: true }));
 // app.use(logger(':method :url'));
 app.use(logger("dev"));
 
-// app.use("/api/v1", Express.static("api"));
-console.info("path.join(__dirname, html): " + path.join(__dirname, "../html"));
-// app.use("/", Express.static(path.join(__dirname, "html")));
-app.use("/", Express.static("html"));
-/*
-app.get('/api/1/session', function (req, res) {
+app.post('/api/1/session', function (req, res) {
     console.info("session: '" + req.path + "'");
     res.end( '01234567890' );
 //    fs.readFile( "./html/" + "EspsWebFlashTool.html", 'utf8', function (err, data) {
 //       res.end( data );
 //    });
  })
- */
 
-// const { port } = require("./config");
-const PORT = process.env.PORT || 8000;
+app.use("/", Express.static("html"));
 
 // Express Routes Import
 // const AuthorizationRoutes = require("./authorization/routes");
