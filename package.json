@@ -1,0 +1,40 @@
+{
+  "name": "ESPS Web Flashtool",
+  "version": "1.0.0",
+  "description": "WEB based flash system for ESPixelStick bin files",
+  "main": "ESPSWebFlashtoolServer.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node ./src/ESPSWebFlashtoolServer.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/martinmueller2003/EspsWebFlashtool.git"
+  },
+  "author": "MartinMueller2003",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MartinMueller2003/EspsWebFlashtool/issues"
+  },
+  "homepage": "https://github.com/MartinMueller2003/EspsWebFlashtool#readme",
+  "dependencies": {
+    "ajv": "8.12.0",
+    "cors": "2.8.5",
+    "express": "4.18.2",
+    "jsonwebtoken": "9.0.0",
+    "morgan": "1.10.0"
+     },
+    "devDependencies": {
+    "del": "^7.1.0",
+    "eslint": "^8.56.0",
+    "gulp": "^4.0.2",
+    "gulp-clean-css": "^4.3.0",
+    "gulp-concat": "^2.6.1",
+    "gulp-gzip": "^1.4.2",
+    "gulp-htmlmin": "^5.0.1",
+    "gulp-markdown-github-style": "^1.1.1",
+    "gulp-plumber": "^1.2.1",
+    "gulp-rename": "^2.0.0",
+    "gulp-terser": "^2.1.0"
+  }
+}
