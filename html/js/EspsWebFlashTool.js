@@ -85,7 +85,7 @@ $(function ()
         else {
             $('.wifiDhcp').removeClass('hidden');
         }
-        $('#btn_network').prop("disabled", ValidateConfigFields($("#network #wifi input")));
+        $('#btn_flash').prop("disabled", ValidateConfigFields($("#network #wifi input")));
     }));
 
     $('#eth #dhcp').on("change", (function () {
@@ -96,15 +96,16 @@ $(function ()
         else {
             $('.ethdhcp').removeClass('hidden');
         }
-        $('#btn_network').prop("disabled", ValidateConfigFields($("#network #wifi input")));
+        $('#btn_flash').prop("disabled", ValidateConfigFields($("#network #wifi input")));
     }));
 
     $('#network').on("input", (function () {
-        $('#btn_network').prop("disabled", ValidateConfigFields($("#network #wifi input")));
+        $('#btn_flash').prop("disabled", ValidateConfigFields($("#network #wifi input")));
     }));
 
-    $('#btn_network').on("click", (function () {
-        submitNetworkConfig();
+    $('#btn_flash').on("click", (function () {
+        // submitNetworkConfig();
+        // GetFlashImage();
     }));
 
     // Halt server health check if document is not visible
@@ -356,6 +357,14 @@ function submitNetworkConfig() {
     ServerAccess.callFunction(SendConfigFileToServer,"config", JSON.stringify({'system': System_Config}));
 
 } // submitNetworkConfig
+
+function GetFlashImage()
+{
+    // save the config for this user
+    // Ask the server to create an image and manifest
+    // Ask for the manifest
+    // tell the flash tool to take over
+} // GetFlashImage
 
 function ValidateConfigFields(ElementList) {
     // return true if errors were found
