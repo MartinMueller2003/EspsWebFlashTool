@@ -14,6 +14,9 @@ var target = document.location.host;
 var ServerTransactionTimer = null;
 var CompletedServerTransaction = true;
 var DocumentIsHidden = false;
+var sessionID = null;
+const ApiHdr = "/api/ESPSWFT/1/";
+const SessionHdr = ApiHdr + "session";
 
 // Default modal properties
 $.fn.modal.Constructor.DEFAULTS.backdrop = 'static';
@@ -139,7 +142,7 @@ async function SendConfigFileToServer(FileName = "", DataString = "")
         console.error("SendConfigFileToServer: abort");
         return -1;
     }, false);
-    ConfigXfer.open("PUT", "http://" + target + "/conf/" + FileName + ".json");
+    ConfigXfer.open("PUT", "http://" + target + SessionHdr + "/" + sessionID + "/" + FileName + ".json");
     ConfigXfer.send(DataString);
     // console.info("DataString: " + DataString);
     // ConfigXfer.send(JSON.stringify(Data));
@@ -159,6 +162,29 @@ async function RequestConfigFile(FileName)
     .fail(function()
     {
         console.error("Could not read config file: " + FileName);
+        return false;
+    });
+
+} // RequestConfigFile
+
+async function RequestManifest()
+{
+    console.log("RequestManifest");
+
+    let ManifestRequest = {};
+    ManifestRequest.System_Config = System_Config;
+    ManifestRequest.platform = $('#BoardSelector').find(":selected").val();
+
+    // console.info("ManifestRequest: " + JSON.stringify(ManifestRequest));
+
+    await $.post("HTTP://" + target + ApiHdr + "manifest" , ManifestRequest, function(data)
+    {
+        console.log("RequestManifest reply: " + JSON.stringify(data));
+        return true;
+    })
+    .fail(function()
+    {
+        console.error("Could not get manifest file: ");
         return false;
     });
 
@@ -221,7 +247,7 @@ async function RequestFirmwareFile()
 {
     // console.log("RequestFirmwareFile FileName: firmware.json");
     let data = "";
-    await $.getJSON("HTTP://" + target + "/conf/firmware.json", function(data)
+    await $.getJSON("HTTP://" + target + "/firmware.json", function(data)
     {
         // console.log("RequestConfigFile: " + JSON.stringify(data));
         ProcessReceivedJsonFirmwareMessage(data);
@@ -360,21 +386,64 @@ function submitNetworkConfig() {
     
     ExtractNetworkConfigFromHtmlPage();
 
-    ServerAccess.callFunction(SendConfigFileToServer,"config", JSON.stringify({'system': System_Config}));
+    // ServerAccess.callFunction(SendConfigFileToServer,"config", JSON.stringify({'system': System_Config}));
 
 } // submitNetworkConfig
+
+async function GetSessionId()
+{
+    console.log("GetSessionId");
+    if(null === sessionID)
+    {
+        await $.getJSON("HTTP://" + target + SessionHdr + "ID", function(data)
+        {
+            sessionID = data.id;
+            console.log("sessionID: " + JSON.stringify(sessionID));
+            return true;
+        })
+        .fail(function()
+        {
+            console.error("Could not get a session ID from the server");
+            return false;
+        });
+    }
+} // GetSessionId
+
+async function DeleteSessionId()
+{
+    console.log("DeleteSessionId");
+    if(null !== sessionID)
+    {
+        await $.delete("HTTP://" + target + SessionHdr, {"id":sessionID}, function()
+        {
+            console.log("Deleted sessionID: " + sessionID);
+            sessionID = null;
+            return true;
+        })
+        .fail(function()
+        {
+            console.error("Could not delete a session ID from the server");
+            return false;
+        });
+    }
+} // GetSessionId
 
 async function GetFlashImage()
 {
     console.info("Set up manifest");
     // establish a session
-    let Response = await SendCommand('api/1/session');
-    console.info("Response: '" + Response + "'");
+    // await GetSessionId();
+//    if(null !== sessionID)
+    {
+        console.info("Got a session ID");
+        ExtractNetworkConfigFromHtmlPage();
+        await RequestManifest()
+        // Ask the server to create an image and manifest
+        // Ask for the manifest
+        // tell the flash tool to take over
+        // DeleteSessionId();
+    }
 
-    // save the config for this user
-    // Ask the server to create an image and manifest
-    // Ask for the manifest
-    // tell the flash tool to take over
 } // GetFlashImage
 
 function ValidateConfigFields(ElementList) {
@@ -436,6 +505,24 @@ function showFlash() {
     $("#EfuProgressBar").addClass("hidden");
     $('#flashdevice').modal();
 } // showFlash
+
+jQuery.each( [ "put", "delete" ], function( i, method ) {
+    jQuery[ method ] = function( url, data, callback, type ) {
+      if ( jQuery.isFunction( data ) ) {
+        type = type || callback;
+        callback = data;
+        data = undefined;
+      }
+  
+      return jQuery.ajax({
+        url: url,
+        type: method,
+        dataType: type,
+        data: data,
+        success: callback
+      });
+    };
+  });
 
 async function SendCommand(command)
 {

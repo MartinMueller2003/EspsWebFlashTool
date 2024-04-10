@@ -1,26 +1,69 @@
-var Express = require("express");
-var app = Express();
+const  Express = require("express");
+const app = Express();
 const cors = require("cors");
+const path = require('path'); 
+const manifest = require('./manifest.js');
+
 var fs = require("fs");
-var path = require('path');
 var bodyParser = require('body-parser')
 var logger = require('morgan');
 
+
+const ApiHdr = "/api/ESPSWFT/1/";
+
 app.use(cors());
-app.use( bodyParser.json() );      
 app.use(bodyParser.urlencoded({  extended: true }));
-// app.use(logger(':method :url'));
+
+// setting for logging to the local console. Not needed for production
 app.use(logger("dev"));
 
-app.post('/api/1/session', function (req, res) {
+// Middleware that parses the body payloads as JSON to be consumed next set
+// of middlewares and controllers.
+app.use( bodyParser.json() );      
+app.use(Express.json());
+
+// clean up past directories
+if(fs.existsSync("sessions"))
+{
+    console.info("Delete previous sessions");
+    fs.rmSync("sessions", { recursive: true });
+}
+
+// processing for the API calls
+app.get(ApiHdr + 'sessionID', (req, res) =>
+{
     console.info("session: '" + req.path + "'");
-    res.end( '01234567890' );
+    const sessionId = {"id":"WQREQWRASSrfg" };
+    res.send( sessionId );
+    fs.mkdirSync("sessions/" + sessionId.id, { recursive: true });
+    app.use(ApiHdr + "session/" + sessionId.id, Express.static("./sessions/" + sessionId.id));
+ });
+
+ // process a request to create a mono image and manifest.
+ app.post(ApiHdr + "manifest", (req, res) =>
+ {
+    // console.info("manifest body: " + JSON.stringify(req.body.platform));
+    var responseData = manifest.GenerateImageAndManifest ("../dist", req.body, "./sessions/");
+    res.send( responseData );
+ });
+
+ // remove a session after it is no longer needed.
+app.delete(ApiHdr + "session", function(req, res)
+{
+    console.info("delete: " + req.body.id);
+    fs.rmSync("sessions/" + req.body.id, { recursive: true });
+    res.end("OK");
+});
+
+
 //    fs.readFile( "./html/" + "EspsWebFlashTool.html", 'utf8', function (err, data) {
 //       res.end( data );
 //    });
- })
 
-app.use("/", Express.static("html"));
+
+// processing path for the static files for the client UI
+ app.use(Express.static("dist/firmware"));
+ app.use(Express.static("html"));
 
 // Express Routes Import
 // const AuthorizationRoutes = require("./authorization/routes");
@@ -32,9 +75,7 @@ app.use("/", Express.static("html"));
 // const ProductModel = require("./common/models/Product");
 
 
-// Middleware that parses the body payloads as JSON to be consumed next set
-// of middlewares and controllers.
-app.use(Express.json());
+// start the express server
 var server = app.listen(5000, function () {
     console.log("Express App running at http://127.0.0.1:5000/");
  });
