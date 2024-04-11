@@ -7,27 +7,21 @@ const manifest = require('./manifest.js');
 var fs = require("fs");
 var bodyParser = require('body-parser')
 var logger = require('morgan');
-
-
 const ApiHdr = "/api/ESPSWFT/1/";
+const PathToSessionData = path.join(__dirname, "../sessions");
+const PathToDistData = path.join(__dirname, "../dist");
 
+manifest.begin(PathToSessionData);
 app.use(cors());
 app.use(bodyParser.urlencoded({  extended: true }));
 
 // setting for logging to the local console. Not needed for production
 app.use(logger("dev"));
 
-// Middleware that parses the body payloads as JSON to be consumed next set
-// of middlewares and controllers.
+// Middleware that parses the body payloads as JSON to be consumed 
+// by next set of middlewares and controllers.
 app.use( bodyParser.json() );      
 app.use(Express.json());
-
-// clean up past directories
-if(fs.existsSync("sessions"))
-{
-    console.info("Delete previous sessions");
-    fs.rmSync("sessions", { recursive: true });
-}
 
 // processing for the API calls
 app.get(ApiHdr + 'sessionID', (req, res) =>
@@ -35,15 +29,14 @@ app.get(ApiHdr + 'sessionID', (req, res) =>
     console.info("session: '" + req.path + "'");
     const sessionId = {"id":"WQREQWRASSrfg" };
     res.send( sessionId );
-    fs.mkdirSync("sessions/" + sessionId.id, { recursive: true });
-    app.use(ApiHdr + "session/" + sessionId.id, Express.static("./sessions/" + sessionId.id));
+    fs.mkdirSync(path,join(PathToSessionData, sessionId.id), { recursive: true });
  });
 
  // process a request to create a mono image and manifest.
  app.post(ApiHdr + "manifest", (req, res) =>
  {
     // console.info("manifest body: " + JSON.stringify(req.body.platform));
-    var responseData = manifest.GenerateImageAndManifest ("../dist", req.body, "./sessions/");
+    var responseData = manifest.GenerateImageAndManifest (PathToDistData, req.body, PathToSessionData);
     res.send( responseData );
  });
 
@@ -51,18 +44,12 @@ app.get(ApiHdr + 'sessionID', (req, res) =>
 app.delete(ApiHdr + "session", function(req, res)
 {
     console.info("delete: " + req.body.id);
-    fs.rmSync("sessions/" + req.body.id, { recursive: true });
+    fs.rmSync(path.join(PathToSessionData, req.body.id), { recursive: true });
     res.end("OK");
 });
 
-
-//    fs.readFile( "./html/" + "EspsWebFlashTool.html", 'utf8', function (err, data) {
-//       res.end( data );
-//    });
-
-
 // processing path for the static files for the client UI
- app.use(Express.static("dist/firmware"));
+ app.use(Express.static(path.join(PathToDistData, "firmware")));
  app.use(Express.static("html"));
 
 // Express Routes Import
