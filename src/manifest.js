@@ -86,8 +86,9 @@ exports.GenerateImageAndManifest = function (DistLocation, ConfigData, ImageDest
     // save the config data
     fs.writeFileSync(path.join(HtmlTargetPath, "config.json"), JSON.stringify(ConfigData));
 
+    var OSBin = "bin/win32/";
     // make the fs image
-    const pythonProcess = spawn(DistLocation, "/bin/win32/mklittlefs.exe",["-c ", HtmlTargetPath, ImageDestinationDir + "fs.bin"]);
+    const pythonProcess = spawn(path.join(DistLocation, OSBin + "mklittlefs.exe"),["-c ", HtmlTargetPath, ImageDestinationDir + "/fs.bin"]);
 
 
     // make the combined image
