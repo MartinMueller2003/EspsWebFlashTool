@@ -6,8 +6,8 @@ const crypto = require('crypto');
 const fs = require("fs");
 const MaxAgeInMs = (60 * 60  * 1000);
 const path = require('path'); 
-const spawn = require("child_process").spawn;
-
+const spawnSync = require("child_process").spawnSync;
+const FSimage = require('./FSimage.js');
 
 // manage the directories created and delete after N minutes since last use
 exports.begin = function (ImageDestinationDir)
@@ -57,46 +57,54 @@ exports.begin = function (ImageDestinationDir)
     }, MaxAgeInMs);
 }; // begin
 
-exports.GenerateImageAndManifest = function (DistLocation, ConfigData, ImageDestinationDir)
+exports.GenerateImageAndManifest = async function (DistLocation, ConfigData, ImageDestinationDir)
 {
     console.info("DistLocation: '" + DistLocation + "'");
     console.info("ConfigData: '" + ConfigData.platform + "'");
 
     ImageDestinationDir = path.join(ImageDestinationDir, crypto.randomBytes(16).toString('hex'));
-    console.info("ImageDestination: '" + ImageDestinationDir + "'");
+    console.info("ImageDestinationDir: '" + ImageDestinationDir + "'");
+    const ImageTarget = path.join(ImageDestinationDir, "output.bin");
+    console.info("ImageTarget: '" + ImageTarget + "'");
 
+    // make the directory in which we will build the monolithic image
     fs.mkdirSync(ImageDestinationDir, { recursive: true });
 
-    var response = {};
-    response.platform = ConfigData.platform;
+    // create the files system image
+    var PlatformInfo = await FSimage.GenerateFsImage(DistLocation, ConfigData, ImageDestinationDir);
+    const FirmwarePath = path.join(DistLocation, "firmware");
 
-    const HtmlTargetPath = path.join(ImageDestinationDir, "fs");
-    const HtmlSourcePath = path.join(DistLocation, "fs");
-    console.info("HtmlTargetPath: '" + HtmlTargetPath + "'");
-    console.info("HtmlSourcePath: '" + HtmlSourcePath + "'");
+    console.info("make the combined image");
+    MergeParameters = [];
+    MergeParameters.push(path.join(DistLocation, "bin/upload.py"));
+    MergeParameters.push("--chip");
+    MergeParameters.push(PlatformInfo.chip);
+    MergeParameters.push("merge_bin");
+    MergeParameters.push("-o");
+    MergeParameters.push(ImageTarget);
+    MergeParameters.push("--flash_mode");
+    MergeParameters.push("dio");
+    MergeParameters.push("--flash_freq");
+    MergeParameters.push("80m");
+    MergeParameters.push("--flash_size");
+    MergeParameters.push("4MB");
 
-    // set up the directory in which we will build the FS
-    fs.mkdirSync(HtmlTargetPath, { recursive: true });
+    PlatformInfo.binfiles.forEach (function (CurrentBin)
+    {
+        MergeParameters.push(CurrentBin.offset);
+        MergeParameters.push(path.join(FirmwarePath, CurrentBin.name));
+    });
 
-    // get the FS files
-    fs.cpSync(HtmlSourcePath + "/", HtmlTargetPath, { recursive : true, force : true });
+    MergeParameters.push(PlatformInfo.filesystem.offset);
+    MergeParameters.push(path.join(ImageDestinationDir, "fs.bin"));
 
-    // minify the FS files
-
-    // save the config data
-    fs.writeFileSync(path.join(HtmlTargetPath, "config.json"), JSON.stringify(ConfigData));
-
-    var OSBin = "bin/win32/";
-    // make the fs image
-    const pythonProcess = spawn(path.join(DistLocation, OSBin + "mklittlefs.exe"),["-c ", HtmlTargetPath, ImageDestinationDir + "/fs.bin"]);
-
-
-    // make the combined image
+    const Process = spawnSync("python", MergeParameters, { stdio: 'inherit' });
+    console.info("make the combined image - done");
 
     // make the manifest
 
 
-    return JSON.stringify(response);
+    return JSON.stringify("ok");
 
 }; // GenerateImageAndManifest
 
