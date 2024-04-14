@@ -26,10 +26,10 @@ app.use(Express.json());
 // processing for the API calls
 
  // process a request to create a mono image and manifest.
- app.post(ApiHdr + "manifest", (req, res) =>
+ app.post(ApiHdr + "manifest", async function (req, res) 
  {
     // console.info("manifest body: " + JSON.stringify(req.body.platform));
-    var responseData = manifest.GenerateImageAndManifest (PathToDistData, req.body, PathToSessionData);
+    var responseData = await manifest.GenerateImageAndManifest (PathToDistData, req.body, PathToSessionData);
     res.send( responseData );
  });
 
