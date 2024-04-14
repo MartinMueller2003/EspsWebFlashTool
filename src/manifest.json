@@ -6,15 +6,9 @@
     "new_install_prompt_erase": false,
     "builds": [
       {
-        "chipFamily": "ESP32",
+        "chipFamily": "InCaps",
         "parts": [
-          { "path": "merged-firmware.bin", "offset": 0 },
-        ]
-      },
-      {
-        "chipFamily": "ESP8266",
-        "parts": [
-          { "path": "esp8266.bin", "offset": 0 }
+          { "path": "Fully Qualified URL", "offset": 0 }
         ]
       }
     ]
