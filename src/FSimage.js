@@ -37,9 +37,11 @@ exports.GenerateFsImage = async function (DistLocation, ConfigData, ImageDestina
     var PlatformInfo = await GetBoardParameters(ConfigData.platform, DistLocation, FsParameters);
     FsParameters.push(ImageDestinationDir + "/fs.bin"); // must be last
 
-    var OSBin = "bin/win32/";
+    // TODO - make this environment dependent
+    var OSBin = "bin/win32/"; 
     // make the fs image
-    const Process = spawnSync(path.join(DistLocation, OSBin + "mklittlefs.exe"), FsParameters, { stdio: 'inherit' });
+    // const Process = spawnSync(path.join(DistLocation, OSBin + "mklittlefs.exe"), FsParameters, { stdio: 'inherit' });
+    const Process = spawnSync(path.join(DistLocation, OSBin + "mklittlefs.exe"), FsParameters);
 
     // console.info("GenerateFsImage - Done");
     return PlatformInfo;
