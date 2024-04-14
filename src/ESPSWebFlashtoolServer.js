@@ -37,18 +37,9 @@ app.use(Express.json());
  app.use(Express.static(path.join(PathToDistData, "firmware")));
  app.use(Express.static("html"));
 
-// Express Routes Import
-// const AuthorizationRoutes = require("./authorization/routes");
-// const UserRoutes = require("./users/routes");
-// const ProductRoutes = require("./products/routes");
-
-// Sequelize model imports
-// const UserModel = require("./common/models/User");
-// const ProductModel = require("./common/models/Product");
-
-
 // start the express server
 var server = app.listen(5000, function () {
     console.log("Express App running at http://127.0.0.1:5000/");
  });
-console.info("Server Init Done");
+
+ console.info("Server Init Done");
