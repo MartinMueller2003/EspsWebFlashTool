@@ -59,24 +59,27 @@ exports.begin = function (ImageDestinationDir)
 
 exports.GenerateImageAndManifest = async function (DistLocation, ConfigData, ImageDestinationDir)
 {
-    console.info("DistLocation: '" + DistLocation + "'");
-    console.info("ConfigData: '" + ConfigData.platform + "'");
+    // console.info("DistLocation: '" + DistLocation + "'");
+    // console.info("ConfigData: '" + ConfigData.platform + "'");
 
     ImageDestinationDir = path.join(ImageDestinationDir, crypto.randomBytes(16).toString('hex'));
-    console.info("ImageDestinationDir: '" + ImageDestinationDir + "'");
+    // console.info("ImageDestinationDir: '" + ImageDestinationDir + "'");
     const ImageTarget = path.join(ImageDestinationDir, "output.bin");
-    console.info("ImageTarget: '" + ImageTarget + "'");
+    // console.info("ImageTarget: '" + ImageTarget + "'");
+
+    const UploadToolDir = path.join(DistLocation, "bin/upload.py");
+    // console.info("uploadToolDir: '" + UploadToolDir + "'");
 
     // make the directory in which we will build the monolithic image
     fs.mkdirSync(ImageDestinationDir, { recursive: true });
 
-    // create the files system image
+    console.info ("create the file system image");
     var PlatformInfo = await FSimage.GenerateFsImage(DistLocation, ConfigData, ImageDestinationDir);
     const FirmwarePath = path.join(DistLocation, "firmware");
 
-    console.info("make the combined image");
+    console.info("create the combined FS + Bin image");
     MergeParameters = [];
-    MergeParameters.push(path.join(DistLocation, "bin/upload.py"));
+    MergeParameters.push(UploadToolDir);
     MergeParameters.push("--chip");
     MergeParameters.push(PlatformInfo.chip);
     MergeParameters.push("merge_bin");
@@ -99,17 +102,16 @@ exports.GenerateImageAndManifest = async function (DistLocation, ConfigData, Ima
     MergeParameters.push(path.join(ImageDestinationDir, "fs.bin"));
 
     const Process = spawnSync("python", MergeParameters, { stdio: 'inherit' });
-    console.info("make the combined image - done");
+    // console.info("make the combined image - done");
 
     // make the manifest
+    // read the manifest into memory
+    currentManifest = require(path.join(__dirname, "/manifest.json"));
+    //"builds":[{"chipFamily":"InCaps","parts":[{"path":"Fully Qualified URL","offset":0}]
+    currentManifest.builds[0].chipFamily = PlatformInfo.chip.toString().toUpperCase();
+    currentManifest.builds[0].parts[0].path = ImageTarget;
 
-
-    return JSON.stringify("ok");
+    // console.info("Manifest: " + JSON.stringify(currentManifest));
+    return JSON.stringify(currentManifest);
 
 }; // GenerateImageAndManifest
-
-
-//    fs.readFile( "./html/" + "EspsWebFlashTool.html", 'utf8', function (err, data) {
-//       res.end( data );
-//    });
-
