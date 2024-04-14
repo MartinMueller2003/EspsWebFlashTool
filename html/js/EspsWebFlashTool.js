@@ -14,7 +14,6 @@ var target = document.location.host;
 var ServerTransactionTimer = null;
 var CompletedServerTransaction = true;
 var DocumentIsHidden = false;
-var sessionID = null;
 const ApiHdr = "/api/ESPSWFT/1/";
 const SessionHdr = ApiHdr + "session";
 
@@ -122,33 +121,6 @@ $(function ()
 
 });
 
-async function SendConfigFileToServer(FileName = "", DataString = "")
-{
-    // console.info("FileName: " + FileName);
-    // console.info("Data: " + JSON.stringify(Data));
-
-    let ConfigXfer = new XMLHttpRequest();
-
-    ConfigXfer.addEventListener("loadend", function() 
-    {
-        // console.info("SendConfigFileToServer: Success");
-        return 1;
-    }, false);
-    ConfigXfer.addEventListener("error", function () {
-        console.error("SendConfigFileToServer: Error");
-        return 0;
-    }, false);
-    ConfigXfer.addEventListener("abort", function() {
-        console.error("SendConfigFileToServer: abort");
-        return -1;
-    }, false);
-    ConfigXfer.open("PUT", "http://" + target + SessionHdr + "/" + sessionID + "/" + FileName + ".json");
-    ConfigXfer.send(DataString);
-    // console.info("DataString: " + DataString);
-    // ConfigXfer.send(JSON.stringify(Data));
-
-} // SendConfigFileToServer
-
 async function RequestConfigFile(FileName)
 {
     // console.log("RequestConfigFile FileName: " + FileName);
@@ -199,6 +171,9 @@ function ProcessReceivedJsonConfigMessage(JsonConfigData) {
         // console.info("Got System Config: " + JSON.stringify(System_Config) );
 
         updateFromJSON(System_Config);
+
+        $('#network #devicename').val(System_Config.device.id);
+
         if ($('#wifi #dhcp').is(':checked')) {
             $('.wifiDhcp').addClass('hidden');
         }
@@ -377,72 +352,25 @@ function ExtractNetworkConfigFromHtmlPage() {
 
 // Builds JSON config submission for "WiFi" tab
 function submitNetworkConfig() {
-    System_Config.device.id = $('#config #device #id').val();
-    System_Config.device.blanktime = $('#config #device #blanktime').val();
-    System_Config.device.miso_pin = $('#config #device #miso_pin').val();
-    System_Config.device.mosi_pin = $('#config #device #mosi_pin').val();
-    System_Config.device.clock_pin = $('#config #device #clock_pin').val();
-    System_Config.device.cs_pin = $('#config #device #cs_pin').val();
-    
+    System_Config.device.id = $('#network #devicename').val();
+
     ExtractNetworkConfigFromHtmlPage();
 
     // ServerAccess.callFunction(SendConfigFileToServer,"config", JSON.stringify({'system': System_Config}));
 
 } // submitNetworkConfig
 
-async function GetSessionId()
-{
-    console.log("GetSessionId");
-    if(null === sessionID)
-    {
-        await $.getJSON("HTTP://" + target + SessionHdr + "ID", function(data)
-        {
-            sessionID = data.id;
-            console.log("sessionID: " + JSON.stringify(sessionID));
-            return true;
-        })
-        .fail(function()
-        {
-            console.error("Could not get a session ID from the server");
-            return false;
-        });
-    }
-} // GetSessionId
-
-async function DeleteSessionId()
-{
-    console.log("DeleteSessionId");
-    if(null !== sessionID)
-    {
-        await $.delete("HTTP://" + target + SessionHdr, {"id":sessionID}, function()
-        {
-            console.log("Deleted sessionID: " + sessionID);
-            sessionID = null;
-            return true;
-        })
-        .fail(function()
-        {
-            console.error("Could not delete a session ID from the server");
-            return false;
-        });
-    }
-} // GetSessionId
-
 async function GetFlashImage()
 {
     console.info("Set up manifest");
-    // establish a session
-    // await GetSessionId();
-//    if(null !== sessionID)
-    {
-        console.info("Got a session ID");
-        ExtractNetworkConfigFromHtmlPage();
-        await RequestManifest()
-        // Ask the server to create an image and manifest
-        // Ask for the manifest
-        // tell the flash tool to take over
-        // DeleteSessionId();
-    }
+
+    // get the current configuration
+    ExtractNetworkConfigFromHtmlPage();
+
+    // Ask the server to create an image and manifest
+    await RequestManifest();
+
+    // tell the flash tool to take over
 
 } // GetFlashImage
 

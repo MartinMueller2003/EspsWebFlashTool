@@ -24,13 +24,6 @@ app.use( bodyParser.json() );
 app.use(Express.json());
 
 // processing for the API calls
-app.get(ApiHdr + 'sessionID', (req, res) =>
-{
-    console.info("session: '" + req.path + "'");
-    const sessionId = {"id":"WQREQWRASSrfg" };
-    res.send( sessionId );
-    fs.mkdirSync(path,join(PathToSessionData, sessionId.id), { recursive: true });
- });
 
  // process a request to create a mono image and manifest.
  app.post(ApiHdr + "manifest", (req, res) =>
@@ -39,14 +32,6 @@ app.get(ApiHdr + 'sessionID', (req, res) =>
     var responseData = manifest.GenerateImageAndManifest (PathToDistData, req.body, PathToSessionData);
     res.send( responseData );
  });
-
- // remove a session after it is no longer needed.
-app.delete(ApiHdr + "session", function(req, res)
-{
-    console.info("delete: " + req.body.id);
-    fs.rmSync(path.join(PathToSessionData, req.body.id), { recursive: true });
-    res.end("OK");
-});
 
 // processing path for the static files for the client UI
  app.use(Express.static(path.join(PathToDistData, "firmware")));
