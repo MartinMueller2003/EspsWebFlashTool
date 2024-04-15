@@ -44,6 +44,7 @@ app.use(Express.json());
 // processing path for the static files for the client UI
  app.use(Express.static(path.join(PathToDistData, "firmware")));
  app.use(Express.static("html"));
+ app.use(ApiHdr + "sessions", Express.static("sessions"));
 
 // start the express server
 var options = {

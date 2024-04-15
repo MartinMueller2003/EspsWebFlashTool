@@ -126,7 +126,7 @@ async function RequestConfigFile(FileName)
 {
     // console.log("RequestConfigFile FileName: " + FileName);
 
-    await $.getJSON("HTTP://" + target + "/conf/" + FileName, function(data)
+    await $.getJSON("HTTPS://" + target + "/conf/" + FileName, function(data)
     {
         // console.log("RequestConfigFile: " + JSON.stringify(data));
         ProcessReceivedJsonConfigMessage(data);
@@ -150,7 +150,7 @@ async function RequestManifest()
 
     // console.info("ManifestRequest: " + JSON.stringify(ManifestRequest));
 
-    await $.post("HTTP://" + target + ApiHdr + "manifest" , ManifestRequest, function(data)
+    await $.post("HTTPS://" + target + ApiHdr + "manifest" , ManifestRequest, function(data)
     {
         manifest = data;
         console.log("RequestManifest reply: " + JSON.stringify(data));
@@ -224,7 +224,7 @@ async function RequestFirmwareFile()
 {
     // console.log("RequestFirmwareFile FileName: firmware.json");
     let data = "";
-    await $.getJSON("HTTP://" + target + "/firmware.json", function(data)
+    await $.getJSON("HTTPS://" + target + "/firmware.json", function(data)
     {
         // console.log("RequestConfigFile: " + JSON.stringify(data));
         ProcessReceivedJsonFirmwareMessage(data);
@@ -457,7 +457,7 @@ jQuery.each( [ "put", "delete" ], function( i, method ) {
 async function SendCommand(command)
 {
     // console.info("SendCommand: " + command);
-    return fetch("HTTP://" + target + "/" + command, {
+    return fetch("HTTPS://" + target + "/" + command, {
             method: 'POST',
             mode: "cors", // no-cors, *cors, same-origin
             headers: { 'Content-Type': 'application/json' },
