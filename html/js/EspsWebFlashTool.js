@@ -7,6 +7,7 @@ var DiagTimer = null;
 // global data
 var System_Config = null;
 var Firmware_Boards = null;
+var ManifestData = null;
 var selector = [];
 var target = document.location.host;
 // target = "192.168.10.233";
@@ -151,6 +152,7 @@ async function RequestManifest()
 
     await $.post("HTTP://" + target + ApiHdr + "manifest" , ManifestRequest, function(data)
     {
+        manifest = data;
         console.log("RequestManifest reply: " + JSON.stringify(data));
         return true;
     })

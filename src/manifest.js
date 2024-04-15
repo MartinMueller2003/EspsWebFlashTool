@@ -57,15 +57,19 @@ exports.begin = function (ImageDestinationDir)
     }, MaxAgeInMs);
 }; // begin
 
-exports.GenerateImageAndManifest = async function (DistLocation, ConfigData, ImageDestinationDir)
+exports.GenerateImageAndManifest = async function (DistLocation, ConfigData, ImageDestinationDir, RootUrl)
 {
     // console.info("DistLocation: '" + DistLocation + "'");
     // console.info("ConfigData: '" + ConfigData.platform + "'");
-
-    ImageDestinationDir = path.join(ImageDestinationDir, crypto.randomBytes(16).toString('hex'));
+    
+    var SessionDir = crypto.randomBytes(16).toString('hex');
+    ImageDestinationDir = path.join(ImageDestinationDir, SessionDir);
     // console.info("ImageDestinationDir: '" + ImageDestinationDir + "'");
     const ImageTarget = path.join(ImageDestinationDir, "output.bin");
     // console.info("ImageTarget: '" + ImageTarget + "'");
+
+    RootUrl = RootUrl + SessionDir;
+    console.info("RootUrl: " + RootUrl);
 
     const UploadToolDir = path.join(DistLocation, "bin/upload.py");
     // console.info("uploadToolDir: '" + UploadToolDir + "'");
@@ -111,7 +115,16 @@ exports.GenerateImageAndManifest = async function (DistLocation, ConfigData, Ima
     currentManifest.builds[0].chipFamily = PlatformInfo.chip.toString().toUpperCase();
     currentManifest.builds[0].parts[0].path = ImageTarget;
 
-    // console.info("Manifest: " + JSON.stringify(currentManifest));
-    return JSON.stringify(currentManifest);
+    ManifestTarget = path.join(ImageDestinationDir, "manifest.json");
+    console.info("ManifestTarget: " + ManifestTarget);
+    fs.writeFile (ManifestTarget, JSON.stringify(currentManifest), function(err)
+    {
+        if (err) throw err;
+        console.log('complete');
+    });
+
+    const ManifestUrl = RootUrl + "/manifest.json";
+    console.info("ManifestUrl: " + ManifestUrl);
+    return (ManifestUrl);
 
 }; // GenerateImageAndManifest
