@@ -7,7 +7,7 @@ var DiagTimer = null;
 // global data
 var System_Config = null;
 var Firmware_Boards = null;
-var ManifestData = null;
+var ManifestUrl = null;
 var selector = [];
 var target = document.location.host;
 // target = "192.168.10.233";
@@ -15,7 +15,7 @@ var target = document.location.host;
 var ServerTransactionTimer = null;
 var CompletedServerTransaction = true;
 var DocumentIsHidden = false;
-const ApiHdr = "/api/ESPSWFT/1/";
+const ApiHdr = "/api/ESPSWFT/v1/";
 const SessionHdr = ApiHdr + "session";
 
 // Default modal properties
@@ -73,8 +73,8 @@ const ServerAccess = new Semaphore(1);
 
 // lets get started
 // MonitorServerConnection();
-RequestFirmwareFile();
-RequestConfigFile("config.json");
+RequestFirmware();
+RequestConfig();
 
 // jQuery doc ready
 $(function () 
@@ -107,7 +107,6 @@ $(function ()
     }));
 
     $('#btn_flash').on("click", (function () {
-        // submitNetworkConfig();
         GetFlashImage();
     }));
 
@@ -122,38 +121,39 @@ $(function ()
 
 });
 
-async function RequestConfigFile(FileName)
+async function RequestConfig()
 {
-    // console.log("RequestConfigFile FileName: " + FileName);
+    // console.log("RequestConfig: ");
 
-    await $.getJSON("HTTPS://" + target + "/conf/" + FileName, function(data)
+    await $.getJSON("HTTPS://" + target + ApiHdr + "config", function(data)
     {
-        // console.log("RequestConfigFile: " + JSON.stringify(data));
+        // console.log("RequestConfig: " + JSON.stringify(data));
         ProcessReceivedJsonConfigMessage(data);
         return true;
     })
     .fail(function()
     {
-        console.error("Could not read config file: " + FileName);
+        console.error("Could not get config data");
         return false;
     });
 
-} // RequestConfigFile
+} // RequestConfig
 
 async function RequestManifest()
 {
     console.log("RequestManifest");
 
     let ManifestRequest = {};
-    ManifestRequest.System_Config = System_Config;
+    ManifestRequest.system = System_Config;
     ManifestRequest.platform = $('#BoardSelector').find(":selected").val();
 
     // console.info("ManifestRequest: " + JSON.stringify(ManifestRequest));
 
     await $.post("HTTPS://" + target + ApiHdr + "manifest" , ManifestRequest, function(data)
     {
-        manifest = data;
-        console.log("RequestManifest reply: " + JSON.stringify(data));
+        // ManifestUrl = JSON.stringify(data);
+        ManifestUrl = data;
+        // console.log("RequestManifest reply: " + ManifestUrl);
         return true;
     })
     .fail(function()
@@ -162,7 +162,7 @@ async function RequestManifest()
         return false;
     });
 
-} // RequestConfigFile
+} // RequestConfig
 
 function ProcessReceivedJsonConfigMessage(JsonConfigData) {
     // console.info("ProcessReceivedJsonConfigMessage: Start");
@@ -196,14 +196,6 @@ function ProcessReceivedJsonConfigMessage(JsonConfigData) {
         else {
             $('#pg_network #network #eth').addClass("hidden")
         }
-
-        if ({}.hasOwnProperty.call(System_Config, 'sensor')) {
-            $('#TemperatureSensorGrp').removeClass("hidden");
-            $('#TemperatureSensorUnits').val(System_Config.sensor.units);
-        }
-        else {
-            $('#TemperatureSensorGrp').addClass("hidden");
-        }
     }
 
     // is this an ACK response?
@@ -220,23 +212,23 @@ function ProcessReceivedJsonConfigMessage(JsonConfigData) {
 
 } // ProcessReceivedJsonConfigMessage
 
-async function RequestFirmwareFile()
+async function RequestFirmware()
 {
-    // console.log("RequestFirmwareFile FileName: firmware.json");
+    // console.log("RequestFirmware FileName: firmware.json");
     let data = "";
-    await $.getJSON("HTTPS://" + target + "/firmware.json", function(data)
+    await $.getJSON("HTTPS://" + target + ApiHdr + "firmware", function(data)
     {
-        // console.log("RequestConfigFile: " + JSON.stringify(data));
+        // console.log("RequestFirmware: " + JSON.stringify(data));
         ProcessReceivedJsonFirmwareMessage(data);
         return true;
     })
     .fail(function()
     {
-        console.error("Could not read Firmware file: 'firmware.json");
+        console.error("Could not get Firmware list");
         return false;
     });
 
-} // RequestFirmwareFile
+} // RequestFirmware
 
 function ProcessReceivedJsonFirmwareMessage(JsonData) {
     // console.info("ProcessReceivedJsonFirmwareMessage: Start");
@@ -352,16 +344,6 @@ function ExtractNetworkConfigFromHtmlPage() {
 
 } // ExtractNetworkConfigFromHtmlPage
 
-// Builds JSON config submission for "WiFi" tab
-function submitNetworkConfig() {
-    System_Config.device.id = $('#network #devicename').val();
-
-    ExtractNetworkConfigFromHtmlPage();
-
-    // ServerAccess.callFunction(SendConfigFileToServer,"config", JSON.stringify({'system': System_Config}));
-
-} // submitNetworkConfig
-
 async function GetFlashImage()
 {
     console.info("Set up manifest");
@@ -373,7 +355,9 @@ async function GetFlashImage()
     await RequestManifest();
 
     // tell the flash tool to take over
-
+    console.info("ManifestUrl: '" + ManifestUrl + "'");
+    $("#FlashButton").attr("manifest", ManifestUrl);
+    $("#FlashButton").trigger('click');
 } // GetFlashImage
 
 function ValidateConfigFields(ElementList) {
