@@ -9,10 +9,12 @@ const PORT = 5000;
 var fs = require("fs");
 var bodyParser = require('body-parser')
 var logger = require('morgan');
-const ApiHdr = "/api/ESPSWFT/1/";
+const ApiHdr = "/api/ESPSWFT/v1/";
 const PathToSessionData = path.join(__dirname, "../sessions");
 const PathToDistData = path.join(__dirname, "../dist");
 const PathToCerts = path.join(__dirname, "../certs");
+const PathToHtmlData = path.join(__dirname, "../html");
+const PathToConfigData = path.join(PathToHtmlData, "conf");
 
 manifest.begin(PathToSessionData);
 app.use(cors());
@@ -31,7 +33,7 @@ app.use(Express.json());
  // process a request to create a mono image and manifest.
  app.post(ApiHdr + "manifest", async function (req, res) 
  {
-    var RootUrl = "https://" + req.hostname + ":" + PORT + ApiHdr + "sessions/";
+    var RootUrl = ApiHdr + "sessions/";
 
     // console.info("manifest body: " + JSON.stringify(req.body.platform));
     // console.info("manifest hostname: " + req.hostname);
@@ -42,9 +44,10 @@ app.use(Express.json());
  });
 
 // processing path for the static files for the client UI
- app.use(Express.static(path.join(PathToDistData, "firmware")));
- app.use(Express.static("html"));
- app.use(ApiHdr + "sessions", Express.static("sessions"));
+ app.use(ApiHdr + "firmware", Express.static(path.join(PathToDistData, "firmware/firmware.json")));
+ app.use(Express.static(PathToHtmlData));
+ app.use(ApiHdr + "sessions", Express.static(PathToSessionData));
+ app.use(ApiHdr + "config", Express.static(path.join(PathToConfigData, "config.json")));
 
 // start the express server
 var options = {
