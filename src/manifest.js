@@ -68,9 +68,6 @@ exports.GenerateImageAndManifest = async function (DistLocation, ConfigData, Ima
     const ImageTarget = path.join(ImageDestinationDir, "output.bin");
     // console.info("ImageTarget: '" + ImageTarget + "'");
 
-    RootUrl = RootUrl + SessionDir;
-    console.info("RootUrl: " + RootUrl);
-
     const UploadToolDir = path.join(DistLocation, "bin/upload.py");
     // console.info("uploadToolDir: '" + UploadToolDir + "'");
 
@@ -108,23 +105,28 @@ exports.GenerateImageAndManifest = async function (DistLocation, ConfigData, Ima
     const Process = spawnSync("python", MergeParameters, { stdio: 'inherit' });
     // console.info("make the combined image - done");
 
+    // build the URLs
+    const SessionUrl = RootUrl + SessionDir;
+    const ManifestUrl = SessionUrl + "/manifest.json";
+    const BinUrl = SessionUrl + "/output.bin";
+    // console.info(" SessionUrl: " + SessionUrl);
+    // console.info("ManifestUrl: " + ManifestUrl);
+    // console.info("     BinUrl: " + BinUrl);
+
     // make the manifest
     // read the manifest into memory
     currentManifest = require(path.join(__dirname, "/manifest.json"));
-    //"builds":[{"chipFamily":"InCaps","parts":[{"path":"Fully Qualified URL","offset":0}]
     currentManifest.builds[0].chipFamily = PlatformInfo.chip.toString().toUpperCase();
-    currentManifest.builds[0].parts[0].path = ImageTarget;
+    currentManifest.builds[0].parts[0].path = BinUrl;
 
     ManifestTarget = path.join(ImageDestinationDir, "manifest.json");
-    console.info("ManifestTarget: " + ManifestTarget);
+    // console.info("ManifestTarget: " + ManifestTarget);
     fs.writeFile (ManifestTarget, JSON.stringify(currentManifest), function(err)
     {
         if (err) throw err;
         console.log('complete');
     });
 
-    const ManifestUrl = RootUrl + "/manifest.json";
-    console.info("ManifestUrl: " + ManifestUrl);
     return (ManifestUrl);
 
 }; // GenerateImageAndManifest
