@@ -323,13 +323,7 @@ function ExtractNetworkEthernetConfigFromHtmlPage() {
         System_Config.network.eth.dnsp = $('#network #eth #dnsp').val();
         System_Config.network.eth.dnss = $('#network #eth #dnss').val();
         System_Config.network.eth.dhcp = $('#network #eth #dhcp').prop('checked');
-        System_Config.network.eth.type = parseInt($('#network #eth #type option:selected').val(), 10);
         System_Config.network.eth.addr = $('#network #eth #addr').val();
-        System_Config.network.eth.power_pin = $('#network #eth #power_pin').val();
-        System_Config.network.eth.mode = parseInt($('#network #eth #mode option:selected').val(), 10);
-        System_Config.network.eth.mdc_pin = $('#network #eth #mdc_pin').val();
-        System_Config.network.eth.mdio_pin = $('#network #eth #mdio_pin').val();
-        System_Config.network.eth.activevalue = (parseInt($('#network #eth #activevalue option:selected').val(), 10) === 1);
         System_Config.network.eth.activedelay = $('#network #eth #activedelay').val();
     }
 
