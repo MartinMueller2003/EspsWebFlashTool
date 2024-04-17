@@ -141,7 +141,7 @@ async function RequestConfig()
 
 async function RequestManifest()
 {
-    console.log("RequestManifest");
+    // console.log("RequestManifest");
 
     let ManifestRequest = {};
     ManifestRequest.system = System_Config;
@@ -346,7 +346,7 @@ function ExtractNetworkConfigFromHtmlPage() {
 
 async function GetFlashImage()
 {
-    console.info("Set up manifest");
+    // console.info("Set up manifest");
 
     // get the current configuration
     ExtractNetworkConfigFromHtmlPage();
@@ -357,7 +357,8 @@ async function GetFlashImage()
     // tell the flash tool to take over
     console.info("ManifestUrl: '" + ManifestUrl + "'");
     $("#FlashButton").attr("manifest", ManifestUrl);
-    $("#FlashButton").trigger('click');
+    document.querySelector('esp-web-install-button').shadowRoot.children.activate.children[0].click();
+
 } // GetFlashImage
 
 function ValidateConfigFields(ElementList) {
