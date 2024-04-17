@@ -1,7 +1,20 @@
 /*
- * SPDX-FileCopyrightText: 2016-2022 Espressif Systems (Shanghai) CO LTD
+ * Copyright (c) 2016-2019 Espressif Systems (Shanghai) PTE LTD
+ * All rights reserved
  *
- * SPDX-License-Identifier: GPL-2.0-or-later
+ * This file is part of the esptool.py binary flasher stub.
+ *
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation; either version 2 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
+ * Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 /* Flasher command handlers, called from stub_flasher.c
@@ -10,7 +23,6 @@
 */
 #pragma once
 #include "stub_flasher.h"
-#include "rom_functions.h"
 #include <stdbool.h>
 
 int handle_flash_erase(uint32_t addr, uint32_t len);
@@ -30,17 +42,3 @@ esp_command_error handle_mem_begin(uint32_t size, uint32_t offset);
 esp_command_error handle_mem_data(void *data, uint32_t length);
 
 esp_command_error handle_mem_finish(void);
-
-typedef struct {
-    uint32_t addr;
-    uint32_t value;
-    uint32_t mask;
-    uint32_t delay_us;
-} write_reg_args_t;
-
-esp_command_error handle_write_reg(const write_reg_args_t *cmd_buf, uint32_t num_commands);
-
-/* Get security info command only on ESP32S2 and later */
-#if ESP32S2_OR_LATER
-esp_command_error handle_get_security_info(void);
-#endif // ESP32S2_OR_LATER

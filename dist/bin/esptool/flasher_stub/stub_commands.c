@@ -1,46 +1,25 @@
 /*
- * SPDX-FileCopyrightText: 2019-2022 Espressif Systems (Shanghai) CO LTD
+ * Copyright (c) 2016-2019 Espressif Systems (Shanghai) PTE LTD
+ * All rights reserved
  *
- * SPDX-License-Identifier: GPL-2.0-or-later
+ * This program is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation; either version 2 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
+ * Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
-
 #include <stdlib.h>
 #include "stub_commands.h"
 #include "stub_flasher.h"
 #include "rom_functions.h"
 #include "slip.h"
 #include "soc_support.h"
-#include "stub_io.h"
-
-#if defined(ESP32S3) && !defined(ESP32S3BETA2)
-static esp_rom_spiflash_result_t SPIRead4B(int spi_num, uint32_t flash_addr, uint8_t* buf, int len)
-{
-    uint8_t cmd_len = 8;
-
-    esp_rom_opiflash_wait_idle();
-    while (len > 0) {
-        int rd_length;
-        if (len > 16 ) {    //16 = read_sub_len
-            rd_length = 16;
-        } else {
-            rd_length = len;
-        }
-        esp_rom_opiflash_exec_cmd(spi_num, SPI_FLASH_FASTRD_MODE,
-                                CMD_FSTRD4B, cmd_len,
-                                flash_addr, 32,
-                                8,
-                                NULL, 0,
-                                buf, 8 * rd_length,
-                                ESP_ROM_OPIFLASH_SEL_CS0,
-                                false);
-
-        len -= rd_length;
-        buf += rd_length;
-        flash_addr += rd_length;
-    }
-    return ESP_ROM_SPIFLASH_RESULT_OK;
-}
-#endif // ESP32S3
 
 int handle_flash_erase(uint32_t addr, uint32_t len) {
   if (addr % FLASH_SECTOR_SIZE != 0) return 0x32;
@@ -48,43 +27,19 @@ int handle_flash_erase(uint32_t addr, uint32_t len) {
   if (SPIUnlock() != 0) return 0x34;
 
   while (len > 0 && (addr % FLASH_BLOCK_SIZE != 0)) {
-    #if defined(ESP32S3) && !defined(ESP32S3BETA2)
-        if (large_flash_mode) {
-          if (esp_rom_opiflash_erase_sector(addr / FLASH_SECTOR_SIZE) != 0) return 0x35;
-        } else {
-          if (SPIEraseSector(addr / FLASH_SECTOR_SIZE) != 0) return 0x35;
-        }
-    #else
-      if (SPIEraseSector(addr / FLASH_SECTOR_SIZE) != 0) return 0x35;
-    #endif // ESP32S3
+    if (SPIEraseSector(addr / FLASH_SECTOR_SIZE) != 0) return 0x35;
     len -= FLASH_SECTOR_SIZE;
     addr += FLASH_SECTOR_SIZE;
   }
 
   while (len > FLASH_BLOCK_SIZE) {
-    #if defined(ESP32S3) && !defined(ESP32S3BETA2)
-      if (large_flash_mode) {
-        if (esp_rom_opiflash_erase_block_64k(addr / FLASH_BLOCK_SIZE) != 0) return 0x36;
-      } else {
-        if (SPIEraseBlock(addr / FLASH_BLOCK_SIZE) != 0) return 0x36;
-      }
-    #else
-      if (SPIEraseBlock(addr / FLASH_BLOCK_SIZE) != 0) return 0x36;
-    #endif // ESP32S3
+    if (SPIEraseBlock(addr / FLASH_BLOCK_SIZE) != 0) return 0x36;
     len -= FLASH_BLOCK_SIZE;
     addr += FLASH_BLOCK_SIZE;
   }
 
   while (len > 0) {
-    #if defined(ESP32S3) && !defined(ESP32S3BETA2)
-      if (large_flash_mode) {
-        if (esp_rom_opiflash_erase_sector(addr / FLASH_SECTOR_SIZE) != 0) return 0x37;
-      } else {
-        if (SPIEraseSector(addr / FLASH_SECTOR_SIZE) != 0) return 0x37;
-      }
-    #else
-      if (SPIEraseSector(addr / FLASH_SECTOR_SIZE) != 0) return 0x37;
-    #endif // ESP32S3
+    if (SPIEraseSector(addr / FLASH_SECTOR_SIZE) != 0) return 0x37;
     len -= FLASH_SECTOR_SIZE;
     addr += FLASH_SECTOR_SIZE;
   }
@@ -98,10 +53,9 @@ void handle_flash_read(uint32_t addr, uint32_t len, uint32_t block_size,
   uint8_t digest[16];
   struct MD5Context ctx;
   uint32_t num_sent = 0, num_acked = 0;
-  uint8_t res = 0;
 
   /* This is one routine where we still do synchronous I/O */
-  stub_rx_async_enable(false);
+  ets_isr_mask(1 << ETS_UART0_INUM);
 
   if (block_size > sizeof(buf)) {
     return;
@@ -111,16 +65,7 @@ void handle_flash_read(uint32_t addr, uint32_t len, uint32_t block_size,
     while (num_sent < len && num_sent - num_acked < max_in_flight) {
       uint32_t n = len - num_sent;
       if (n > block_size) n = block_size;
-      #if defined(ESP32S3) && !defined(ESP32S3BETA2)
-        if (large_flash_mode) {
-          res = SPIRead4B(1, addr, buf, n);
-        } else {
-          res = SPIRead(addr, (uint32_t *)buf, n);
-        }
-      #else
-        res = SPIRead(addr, (uint32_t *)buf, n);
-      #endif // ESP32S3
-      if (res != 0) {
+      if (SPIRead(addr, (uint32_t *)buf, n) != 0) {
         break;
       }
       SLIP_send(buf, n);
@@ -136,14 +81,13 @@ void handle_flash_read(uint32_t addr, uint32_t len, uint32_t block_size,
   MD5Final(digest, &ctx);
   SLIP_send(digest, sizeof(digest));
 
-  /* Go back to async RX */
-  stub_rx_async_enable(true);
+  /* Go back to async UART */
+  ets_isr_unmask(1 << ETS_UART0_INUM);
 }
 
 int handle_flash_get_md5sum(uint32_t addr, uint32_t len) {
   uint8_t buf[FLASH_SECTOR_SIZE];
   uint8_t digest[16];
-  uint8_t res = 0;
   struct MD5Context ctx;
   MD5Init(&ctx);
   while (len > 0) {
@@ -151,16 +95,7 @@ int handle_flash_get_md5sum(uint32_t addr, uint32_t len) {
     if (n > FLASH_SECTOR_SIZE) {
       n = FLASH_SECTOR_SIZE;
     }
-    #if defined(ESP32S3) && !defined(ESP32S3BETA2)
-      if (large_flash_mode) {
-        res = SPIRead4B(1, addr, buf, n);
-      } else {
-        res = SPIRead(addr, (uint32_t *)buf, n);
-      }
-    #else
-      res = SPIRead(addr, (uint32_t *)buf, n);
-    #endif // ESP32S3
-    if (res != 0) {
+    if (SPIRead(addr, (uint32_t *)buf, n) != 0) {
       return 0x63;
     }
     MD5Update(&ctx, buf, n);
@@ -186,16 +121,6 @@ esp_command_error handle_spi_attach(uint32_t hspi_config_arg)
          see https://github.com/themadinventor/esptool/issues/98 */
         SelectSpiFunction();
 #else
-        /* Stub calls spi_flash_attach automatically when it boots,
-          therefore, we need to "unattach" the flash before attaching again
-          with different configuration to avoid issues. */
-
-        // Configure the SPI flash pins back as classic GPIOs
-        PIN_FUNC_SELECT(PERIPHS_IO_MUX_SPICLK_U, FUNC_GPIO);
-        PIN_FUNC_SELECT(PERIPHS_IO_MUX_SPIQ_U, FUNC_GPIO);
-        PIN_FUNC_SELECT(PERIPHS_IO_MUX_SPID_U, FUNC_GPIO);
-        PIN_FUNC_SELECT(PERIPHS_IO_MUX_SPICS0_U, FUNC_GPIO);
-
         /* spi_flash_attach calls SelectSpiFunction() and another
            function to initialise SPI flash interface.
 
@@ -243,37 +168,3 @@ esp_command_error handle_mem_finish()
     mem_offset = NULL;
     return res;
 }
-
-esp_command_error handle_write_reg(const write_reg_args_t *cmds, uint32_t num_commands)
-{
-    for (uint32_t i = 0; i < num_commands; i++) {
-        const write_reg_args_t *cmd = &cmds[i];
-        ets_delay_us(cmd->delay_us);
-        uint32_t v = cmd->value & cmd->mask;
-        if (cmd->mask != UINT32_MAX) {
-            v |= READ_REG(cmd->addr) & ~cmd->mask;
-        }
-        WRITE_REG(cmd->addr, v);
-    }
-    return ESP_OK;
-}
-
-#if ESP32S2_OR_LATER
-esp_command_error handle_get_security_info()
-{
-  uint8_t buf[SECURITY_INFO_BYTES];
-  esp_command_error ret;
-
-  #ifdef ESP32C3
-  if (_rom_eco_version >= 7)
-    ret = GetSecurityInfoProcNewEco(NULL, NULL, buf);
-  else
-    ret = GetSecurityInfoProc(NULL, NULL, buf);
-  #else
-  ret = GetSecurityInfoProc(NULL, NULL, buf);
-  #endif // ESP32C3
-  if (ret == ESP_OK)
-    SLIP_send_frame_data_buf(buf, sizeof(buf));
-  return ret;
-}
-#endif // ESP32S2_OR_LATER

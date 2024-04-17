@@ -1,10 +1,11 @@
 #!/bin/sh
 #
-# Run "pytest test/test_esptool.py" using the newly compiled stub, for quick tests
+# Run test/test_esptool.py using the newly compiled stub, for quick tests
 #
-# Usage same as "pytest test/test_esptool.py --port <PORT> --chip <CHIP> --baud <BAUD>"
+# Usage same as test/test_esptool.py
+[ -z $PYTHON ] && PYTHON=python
 
-THISDIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+THISDIR=`realpath -m $(dirname $0)`
 
 export ESPTOOL_PY="${THISDIR}/esptool_test_stub.py"
-pytest ${THISDIR}/../test/test_esptool.py $@
+${PYTHON} ${THISDIR}/../test/test_esptool.py $@
