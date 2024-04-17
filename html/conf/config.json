@@ -1,13 +1,10 @@
 {
     "system": {
+        "requiresConfigSave": true,
         "cfgver": 1,
         "device": {
             "id": "ESPixelStick",
-            "blanktime": 5,
-            "miso_pin": 12,
-            "mosi_pin": 13,
-            "clock_pin": 14,
-            "cs_pin": 15
+            "blanktime": 5
         },
         "network": {
             "hostname": "ESPixelStick",
@@ -37,12 +34,6 @@
                 "dnsp": "0.0.0.0",
                 "dnss": "0.0.0.0",
                 "dhcp": true,
-                "type": 0,
-                "addr": 1,
-                "power_pin": 15,
-                "mode": 0,
-                "mdc_pin": 23,
-                "mdio_pin": 18,
                 "activevalue": true,
                 "activedelay": 1000
             }
