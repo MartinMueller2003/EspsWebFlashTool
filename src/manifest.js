@@ -15,8 +15,8 @@ exports.begin = function (ImageDestinationDir)
     // clean up past directories
     if(fs.existsSync(ImageDestinationDir))
     {
-    console.info("Delete old sessions");
-    fs.rmSync(ImageDestinationDir, { recursive: true });
+        console.info("Delete old sessions");
+        fs.rmSync(ImageDestinationDir, { recursive: true });
     }
 
     fs.mkdirSync(ImageDestinationDir);
@@ -30,29 +30,29 @@ exports.begin = function (ImageDestinationDir)
 
         for (const file of files) 
         {
-                if (file.isDirectory()) 
-                {
-                        const filePath = path.join(ImageDestinationDir, file.name);
-                        const stats = fs.statSync(filePath);
-                        const deltaTime = new Date().getTime() - stats.atime;
-                        // console.info("filePath: '" + filePath + "'");
-                        // console.info("Date(): '" + new Date().getTime() + "'");
-                        // console.info("stats.atime: '" + stats.atime + "'");
-                        // console.info("MaxAgeInMs: '" + MaxAgeInMs + "'");
-                        // console.info("deltaTime: '" + deltaTime + "'");
+            if (file.isDirectory()) 
+            {
+                const filePath = path.join(ImageDestinationDir, file.name);
+                const stats = fs.statSync(filePath);
+                const deltaTime = new Date().getTime() - stats.atime;
+                // console.info("filePath: '" + filePath + "'");
+                // console.info("Date(): '" + new Date().getTime() + "'");
+                // console.info("stats.atime: '" + stats.atime + "'");
+                // console.info("MaxAgeInMs: '" + MaxAgeInMs + "'");
+                // console.info("deltaTime: '" + deltaTime + "'");
 
-                        // has it been hanging around too long?
-                        if(deltaTime > MaxAgeInMs)
-                        {
-                                // clean up the directory
-                                // TODO - Restore fs.rmSync(filePath, { recursive: true });
-                        }
-                } 
-                else 
+                // has it been hanging around too long?
+                if(deltaTime > MaxAgeInMs)
                 {
+                    // clean up the directory
+                    fs.rmSync(filePath, { recursive: true });
+                }
+            } 
+            else 
+            {
                 // no files allowed in this directory
                 fs.rmSync(filePath);
-                }
+            }
         }       
     }, MaxAgeInMs);
 }; // begin
@@ -127,6 +127,27 @@ exports.GenerateImageAndManifest = async function (DistLocation, ConfigData, Ima
         console.log('complete');
     });
 
+    // clean up the files to remove sensitive data
+    fs.rmSync(path.join(ImageDestinationDir, "fs.bin"));
+    fs.rmSync(path.join(ImageDestinationDir, "fs"), { recursive: true });
+
     return (ManifestUrl);
 
 }; // GenerateImageAndManifest
+
+exports.DeleteImageAndManifest = async function (sessionId, PathToSessionData)
+{
+    const ImageDestinationDir = path.join(PathToSessionData, sessionId);
+
+    // console.info("          sessionId: '" + sessionId + "'");
+    // console.info("  PathToSessionData: '" + PathToSessionData + "'");
+    // console.info("ImageDestinationDir: '" + ImageDestinationDir + "'");
+
+    if(fs.existsSync(ImageDestinationDir))
+    {
+        fs.rmSync(ImageDestinationDir, { recursive: true });
+    }
+
+    return 200;
+    
+} // DeleteImageAndManifest

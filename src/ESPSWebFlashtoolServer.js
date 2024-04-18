@@ -43,6 +43,17 @@ app.use(Express.json());
     res.send( responseData );
  });
 
+ // handle a session termination request
+ app.delete(ApiHdr + "sessions", async function (req, res) 
+ {
+    // console.info("DELETE body: " + JSON.stringify(req.body));
+    let url = req.body.manifest;
+    session = url.replace(ApiHdr + "sessions/", "");
+    session = session.substr(0,session.lastIndexOf("/"));
+    var responseData = await manifest.DeleteImageAndManifest (session, PathToSessionData);
+    res.sendStatus( responseData );
+ });
+
 // processing path for the static files for the client UI
  app.use(ApiHdr + "firmware", Express.static(path.join(PathToDistData, "firmware/firmware.json")));
  app.use(Express.static(PathToHtmlData));

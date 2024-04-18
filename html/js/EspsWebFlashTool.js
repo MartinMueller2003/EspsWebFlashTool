@@ -164,6 +164,26 @@ async function RequestManifest()
 
 } // RequestConfig
 
+async function ReleaseManifest()
+{
+    console.info("ReleaseManifest: " + ManifestUrl);
+    let ManifestRequest = {};
+    ManifestRequest.manifest = ManifestUrl;
+
+    await $.delete("HTTPS://" + target + ApiHdr + "sessions" , ManifestRequest, function(data)
+    {
+        console.log("RequestManifest reply: " + ManifestUrl);
+        return true;
+    })
+    .fail(function()
+    {
+        console.error("Could not release manifest");
+        return false;
+    });
+
+} // ReleaseManifest
+
+
 function ProcessReceivedJsonConfigMessage(JsonConfigData) {
     // console.info("ProcessReceivedJsonConfigMessage: Start");
 
@@ -352,6 +372,7 @@ async function GetFlashImage()
     console.info("ManifestUrl: '" + ManifestUrl + "'");
     $("#FlashButton").attr("manifest", ManifestUrl);
     document.querySelector('esp-web-install-button').shadowRoot.children.activate.children[0].click();
+    ReleaseManifest();
 
 } // GetFlashImage
 
