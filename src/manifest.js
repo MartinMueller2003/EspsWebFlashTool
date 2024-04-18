@@ -4,7 +4,7 @@
 
 const crypto = require('crypto');
 const fs = require("fs");
-const MaxAgeInMs = (60 * 60  * 1000);
+const MaxAgeInMs = (30 * 60 * 1000); // minutes * seconds in a minute * miliseconds in a second
 const path = require('path'); 
 const spawnSync = require("child_process").spawnSync;
 const FSimage = require('./FSimage.js');
@@ -21,9 +21,10 @@ exports.begin = function (ImageDestinationDir)
 
     fs.mkdirSync(ImageDestinationDir);
 
-    var intervalId = setInterval(function() 
+    setInterval(function() 
     {
         // console.info("Interval reached every Hour");
+        // console.info("Date(): '" + new Date().getTime() + "'");
 
         // scan the existing directories
         const files = fs.readdirSync(ImageDestinationDir, { withFileTypes: true });
@@ -34,23 +35,22 @@ exports.begin = function (ImageDestinationDir)
             {
                 const filePath = path.join(ImageDestinationDir, file.name);
                 const stats = fs.statSync(filePath);
-                const deltaTime = new Date().getTime() - stats.atime;
+                const deltaTime = new Date().getTime() - stats.atime.getTime();
                 // console.info("filePath: '" + filePath + "'");
-                // console.info("Date(): '" + new Date().getTime() + "'");
-                // console.info("stats.atime: '" + stats.atime + "'");
+                // console.info("stats.atime: '" + stats.atime.getTime() + "'");
                 // console.info("MaxAgeInMs: '" + MaxAgeInMs + "'");
                 // console.info("deltaTime: '" + deltaTime + "'");
 
                 // has it been hanging around too long?
                 if(deltaTime > MaxAgeInMs)
                 {
-                    // clean up the directory
+                    // console.info("clean up the directory");
                     fs.rmSync(filePath, { recursive: true });
                 }
             } 
             else 
             {
-                // no files allowed in this directory
+                // console.info("no files allowed in this directory");
                 fs.rmSync(filePath);
             }
         }       
