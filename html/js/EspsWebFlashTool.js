@@ -371,8 +371,10 @@ async function GetFlashImage()
     // tell the flash tool to take over
     console.info("ManifestUrl: '" + ManifestUrl + "'");
     $("#FlashButton").attr("manifest", ManifestUrl);
-    document.querySelector('esp-web-install-button').shadowRoot.children.activate.children[0].click();
-    ReleaseManifest();
+    $("#FlashButton").attr("showLog", true);
+    
+    const InstallButton = document.querySelector('esp-web-install-button');
+    await InstallButton.shadowRoot.children.activate.children[0].click();
 
 } // GetFlashImage
 
