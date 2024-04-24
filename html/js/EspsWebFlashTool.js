@@ -74,7 +74,6 @@ const ServerAccess = new Semaphore(1);
 
 // lets get started
 // MonitorServerConnection();
-RequestFirmware();
 RequestConfig();
 RequestVersionList();
 
@@ -110,6 +109,10 @@ $(function ()
 
     $('#btn_flash').on("click", (function () {
         GetFlashImage();
+    }));
+
+    $('#VersionSelector').on("click", (function () {
+        RequestFirmware();
     }));
 
     // Halt server health check if document is not visible
@@ -157,7 +160,7 @@ async function RequestManifest()
         "name" : VersionArray[2]
     };
 
-    console.info("ManifestRequest: " + JSON.stringify(ManifestRequest));
+    // console.info("ManifestRequest: " + JSON.stringify(ManifestRequest));
 
     await $.post("HTTPS://" + target + ApiHdr + "manifest" , ManifestRequest, function(data)
     {
@@ -176,13 +179,13 @@ async function RequestManifest()
 
 async function ReleaseManifest()
 {
-    console.info("ReleaseManifest: " + ManifestUrl);
+    // console.info("ReleaseManifest: " + ManifestUrl);
     let ManifestRequest = {};
     ManifestRequest.manifest = ManifestUrl;
 
     await $.delete("HTTPS://" + target + ApiHdr + "sessions" , ManifestRequest, function(data)
     {
-        console.log("RequestManifest reply: " + ManifestUrl);
+        // console.log("RequestManifest reply: " + ManifestUrl);
         return true;
     })
     .fail(function()
@@ -243,11 +246,11 @@ function ProcessReceivedJsonConfigMessage(JsonConfigData) {
 
 async function RequestVersionList()
 {
-    console.log("RequestVersionList");
+    // console.log("RequestVersionList");
     let data = "";
     await $.getJSON("HTTPS://" + target + ApiHdr + "versions", function(data)
     {
-        console.log("RequestVersionList: " + JSON.stringify(data));
+        // console.log("RequestVersionList: " + JSON.stringify(data));
         ProcessReceivedJsonVersionsMessage(data);
         return true;
     })
@@ -260,7 +263,7 @@ async function RequestVersionList()
 } // RequestVersionList
 
 function ProcessReceivedJsonVersionsMessage(JsonData) {
-    console.info("ProcessReceivedJsonVersionsMessage: Start");
+    // console.info("ProcessReceivedJsonVersionsMessage: Start");
 
     VersionList = JsonData;
     // iterate the list of versions and 
@@ -268,7 +271,7 @@ function ProcessReceivedJsonVersionsMessage(JsonData) {
     $.each (VersionList, function (index, Currentversion)
     {
         $('<option/>', { value : Currentversion.date + "," + Currentversion.time + "," + Currentversion.name }).text(Currentversion.name + " " + Currentversion.date + ":" + Currentversion.time).appendTo('#VersionSelector');
-        console.info("Currentversion: '" + Currentversion.name + "'");
+        // console.info("Currentversion: '" + Currentversion.name + "'");
     });
 
     // now sort the options
@@ -277,21 +280,37 @@ function ProcessReceivedJsonVersionsMessage(JsonData) {
         return a.text == b.text ? 0 : a.text < b.text ? -1 : 1
     }));
 
+    // update the firmware list based on the version being processed
+    RequestFirmware();
 } // ProcessReceivedJsonVersionsMessage
 
 async function RequestFirmware()
 {
-    // console.log("RequestFirmware FileName: firmware.json");
+    // console.log("RequestFirmware");
     let data = "";
-    await $.getJSON("HTTPS://" + target + ApiHdr + "firmware", function(data)
+    var VersionString = $('#VersionSelector').find(":selected").val();
+    if(VersionString === undefined)
     {
-        // console.log("RequestFirmware: " + JSON.stringify(data));
+        return;
+    }
+    const VersionArray = VersionString.split(",");
+
+    let FirmwareRequest = {"version" :
+    {
+        "date" : VersionArray[0],
+        "time" : VersionArray[1],
+        "name" : VersionArray[2]
+    }};
+
+    await $.post("HTTPS://" + target + ApiHdr + "firmware" , FirmwareRequest, function(data)
+    {
+        // console.log("RequestFirmware response: " + JSON.stringify(data));
         ProcessReceivedJsonFirmwareMessage(data);
         return true;
     })
     .fail(function()
     {
-        console.error("Could not get Firmware list");
+        console.error("Could not get Firmwarex list");
         return false;
     });
 
@@ -416,7 +435,7 @@ async function GetFlashImage()
     await RequestManifest();
 
     // tell the flash tool to take over
-    console.info("ManifestUrl: '" + ManifestUrl + "'");
+    // console.info("ManifestUrl: '" + ManifestUrl + "'");
     $("#FlashButton").attr("manifest", ManifestUrl);
     $("#FlashButton").attr("showLog", true);
     

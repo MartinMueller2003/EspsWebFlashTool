@@ -125,7 +125,7 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
     fs.writeFile (ManifestTarget, JSON.stringify(currentManifest), function(err)
     {
         if (err) throw err;
-        console.log('complete');
+        // console.log('complete');
     });
 
     // clean up the files to remove sensitive data

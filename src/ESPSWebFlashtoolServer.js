@@ -12,7 +12,7 @@ var bodyParser = require('body-parser')
 var logger = require('morgan');
 const ApiHdr = "/api/ESPSWFT/v1/";
 const PathToSessionData = path.join(__dirname, "../sessions");
-const PathToDistData = path.join(__dirname, "../dist");
+const PathToTools = path.join(__dirname, "../tools");
 const PathToDistList = path.join(__dirname, "../dists");
 const PathToCerts = path.join(__dirname, "../certs");
 const PathToHtmlData = path.join(__dirname, "../html");
@@ -45,7 +45,7 @@ app.use(Express.json());
     // console.info("manifest hostname: " + req.hostname);
     // console.info("manifest RootUrl: " + RootUrl);
 
-    var responseData = await manifest.GenerateImageAndManifest (PathToDistData, PathToDistList, req.body, PathToSessionData, RootUrl);
+    var responseData = await manifest.GenerateImageAndManifest (PathToTools, PathToDistList, req.body, PathToSessionData, RootUrl);
     res.send( responseData );
  });
 
@@ -68,7 +68,16 @@ app.use(Express.json());
  });
 
 // processing path for the static files for the client UI
- app.use(ApiHdr + "firmware", Express.static(path.join(PathToDistData, "firmware/firmware.json")));
+ app.post(ApiHdr + "firmware", async function (req, res) 
+ {
+    // console.info("firmware body: " + JSON.stringify(req.body));
+    let filepath = path.join(PathToDistList, "ESPixelStick_Firmware-" + req.body.version.name);
+    filepath = path.join(filepath, "firmware/firmware.json");
+    // console.info("filepath: " + filepath);
+
+    res.download( filepath );
+ });
+
  app.use(Express.static(PathToHtmlData));
  app.use(ApiHdr + "sessions", Express.static(PathToSessionData));
  app.use(ApiHdr + "config", Express.static(path.join(PathToConfigData, "config.json")));

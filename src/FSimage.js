@@ -15,9 +15,12 @@ exports.GenerateFsImage = async function (DistLocation, PathToDists, ConfigData,
     response.platform = ConfigData.platform;
 
     const HtmlTargetPath = path.join(ImageDestinationDir, "fs");
-    const HtmlSourcePath = path.join(path.join(PathToDists, "ESPixelStick_Firmware-" + ConfigData.version.name), "fs");
+    const SourceDistPath = path.join(PathToDists, "ESPixelStick_Firmware-" + ConfigData.version.name);
+    const HtmlSourcePath = path.join(SourceDistPath, "fs");
+
     // console.info("FS HtmlTargetPath: '" + HtmlTargetPath + "'");
-    console.info("FS HtmlSourcePath: '" + HtmlSourcePath + "'");
+    // console.info("FS SourceDistPath: '" + SourceDistPath + "'");
+    // console.info("FS HtmlSourcePath: '" + HtmlSourcePath + "'");
 
     // set up the directory in which we will build the FS
     fs.mkdirSync(HtmlTargetPath, { recursive: true });
@@ -34,7 +37,7 @@ exports.GenerateFsImage = async function (DistLocation, PathToDists, ConfigData,
     let FsParameters = [];
     FsParameters.push("-c");
     FsParameters.push(HtmlTargetPath);
-    var PlatformInfo = await GetBoardParameters(ConfigData.platform, DistLocation, FsParameters);
+    var PlatformInfo = await GetBoardParameters(ConfigData.platform, SourceDistPath, FsParameters);
     FsParameters.push(ImageDestinationDir + "/fs.bin"); // must be last
 
     // TODO - make this environment dependent
