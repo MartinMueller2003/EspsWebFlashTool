@@ -111,7 +111,7 @@ $(function ()
         GetFlashImage();
     }));
 
-    $('#VersionSelector').on("click", (function () {
+    $('#VersionSelector').on("change", (function () {
         RequestFirmware();
     }));
 
@@ -248,10 +248,10 @@ async function RequestVersionList()
 {
     // console.log("RequestVersionList");
     let data = "";
-    await $.getJSON("HTTPS://" + target + ApiHdr + "versions", function(data)
+    await $.getJSON("HTTPS://" + target + ApiHdr + "versions", async function(data)
     {
         // console.log("RequestVersionList: " + JSON.stringify(data));
-        ProcessReceivedJsonVersionsMessage(data);
+        await ProcessReceivedJsonVersionsMessage(data);
         return true;
     })
     .fail(function()
@@ -262,7 +262,7 @@ async function RequestVersionList()
 
 } // RequestVersionList
 
-function ProcessReceivedJsonVersionsMessage(JsonData) {
+async function ProcessReceivedJsonVersionsMessage(JsonData) {
     // console.info("ProcessReceivedJsonVersionsMessage: Start");
 
     VersionList = JsonData;
@@ -287,7 +287,7 @@ function ProcessReceivedJsonVersionsMessage(JsonData) {
     }));
 
     // update the firmware list based on the version being processed
-    RequestFirmware();
+    await RequestFirmware();
 } // ProcessReceivedJsonVersionsMessage
 
 async function RequestFirmware()
@@ -308,10 +308,10 @@ async function RequestFirmware()
         "name" : VersionArray[2]
     }};
 
-    await $.post("HTTPS://" + target + ApiHdr + "firmware" , FirmwareRequest, function(data)
+    await $.post("HTTPS://" + target + ApiHdr + "firmware" , FirmwareRequest, async function(data)
     {
         // console.log("RequestFirmware response: " + JSON.stringify(data));
-        ProcessReceivedJsonFirmwareMessage(data);
+        await ProcessReceivedJsonFirmwareMessage(data);
         return true;
     })
     .fail(function()
@@ -322,7 +322,7 @@ async function RequestFirmware()
 
 } // RequestFirmware
 
-function ProcessReceivedJsonFirmwareMessage(JsonData) {
+async function ProcessReceivedJsonFirmwareMessage(JsonData) {
     // console.info("ProcessReceivedJsonFirmwareMessage: Start");
 
     // is this a board config?
