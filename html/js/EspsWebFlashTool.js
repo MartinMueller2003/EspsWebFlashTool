@@ -266,6 +266,10 @@ function ProcessReceivedJsonVersionsMessage(JsonData) {
     // console.info("ProcessReceivedJsonVersionsMessage: Start");
 
     VersionList = JsonData;
+
+    // clear the existing list of versions
+    $("#VersionSelector").find('option').remove();
+
     // iterate the list of versions and 
     // build selection list
     $.each (VersionList, function (index, Currentversion)
@@ -277,7 +281,9 @@ function ProcessReceivedJsonVersionsMessage(JsonData) {
     // now sort the options
     $("#VersionSelector").html($("#VersionSelector option").sort(function (a, b)
     {
-        return a.text == b.text ? 0 : a.text < b.text ? -1 : 1
+        // console.info("a.text: " + a.text);
+        // console.info("b.text: " + b.text);
+        return a.text == b.text ? 0 : a.text > b.text ? -1 : 1
     }));
 
     // update the firmware list based on the version being processed
@@ -324,6 +330,9 @@ function ProcessReceivedJsonFirmwareMessage(JsonData) {
         Firmware_Boards = JsonData.boards;
         // console.info("Got Firmware Config: " + JSON.stringify(Firmware_Boards) );
 
+        // clear the current list
+        $("#BoardSelector").find('option').remove();
+
         // iterate the list of boards and 
         // build selection list
         $.each (Firmware_Boards, function (index, CurrentBoard)
@@ -339,13 +348,8 @@ function ProcessReceivedJsonFirmwareMessage(JsonData) {
         }));
     }
 
-    // is this an ACK response?
-    else if ({}.hasOwnProperty.call(JsonData, "OK")) {
-        // console.info("Received Acknowledgement to Firmware set command.")
-    }
-
     else {
-        console.error("unknown Firmware record type has been ignored.")
+        console.error("unknown Firmware response has been ignored.")
     }
     // console.info("ProcessReceivedJsonFirmwareMessage: Done");
 } // ProcessReceivedJsonFirmwareMessage
