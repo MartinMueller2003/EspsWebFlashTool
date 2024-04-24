@@ -6,7 +6,7 @@ const fs = require("fs");
 const path = require('path'); 
 const spawnSync = require("child_process").spawnSync;
 
-exports.GenerateFsImage = async function (DistLocation, ConfigData, ImageDestinationDir)
+exports.GenerateFsImage = async function (DistLocation, PathToDists, ConfigData, ImageDestinationDir)
 {
     // console.info("FS DistLocation: '" + DistLocation + "'");
     // console.info("FS ConfigData: '" + ConfigData.platform + "'");
@@ -15,9 +15,9 @@ exports.GenerateFsImage = async function (DistLocation, ConfigData, ImageDestina
     response.platform = ConfigData.platform;
 
     const HtmlTargetPath = path.join(ImageDestinationDir, "fs");
-    const HtmlSourcePath = path.join(DistLocation, "fs");
+    const HtmlSourcePath = path.join(path.join(PathToDists, "ESPixelStick_Firmware-" + ConfigData.version.name), "fs");
     // console.info("FS HtmlTargetPath: '" + HtmlTargetPath + "'");
-    // console.info("FS HtmlSourcePath: '" + HtmlSourcePath + "'");
+    console.info("FS HtmlSourcePath: '" + HtmlSourcePath + "'");
 
     // set up the directory in which we will build the FS
     fs.mkdirSync(HtmlTargetPath, { recursive: true });
@@ -56,8 +56,6 @@ async function GetBoardParameters(platformName, DistLocation, FsParameters)
     const FirmWareConfig = JSON.parse(fs.readFileSync( DistLocation + "/firmware/firmware.json", 'utf8'));
 
     // console.info("FS GetBoardParameters: Data: " + JSON.stringify(FirmWareConfig));
-    var targetPlatform = null;
-
     if ({}.hasOwnProperty.call(FirmWareConfig, "boards"))
     {
         // console.info("FS GetBoardParameters: Found the boards array");

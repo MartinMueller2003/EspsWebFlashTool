@@ -57,7 +57,7 @@ exports.begin = function (ImageDestinationDir)
     }, MaxAgeInMs);
 }; // begin
 
-exports.GenerateImageAndManifest = async function (DistLocation, ConfigData, ImageDestinationDir, RootUrl)
+exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, ConfigData, ImageDestinationDir, RootUrl)
 {
     // console.info("DistLocation: '" + DistLocation + "'");
     // console.info("ConfigData: '" + ConfigData.platform + "'");
@@ -68,15 +68,16 @@ exports.GenerateImageAndManifest = async function (DistLocation, ConfigData, Ima
     const ImageTarget = path.join(ImageDestinationDir, "output.bin");
     // console.info("ImageTarget: '" + ImageTarget + "'");
 
-    const UploadToolDir = path.join(DistLocation, "bin/upload.py");
+    const UploadToolDir = path.join(ToolsLocation, "bin/upload.py");
     // console.info("uploadToolDir: '" + UploadToolDir + "'");
 
     // make the directory in which we will build the monolithic image
     fs.mkdirSync(ImageDestinationDir, { recursive: true });
 
     console.info ("create the file system image");
-    var PlatformInfo = await FSimage.GenerateFsImage(DistLocation, ConfigData, ImageDestinationDir);
-    const FirmwarePath = path.join(DistLocation, "firmware");
+    var PlatformInfo = await FSimage.GenerateFsImage(ToolsLocation, PathToDists, ConfigData, ImageDestinationDir);
+    const FirmwarePath = path.join(path.join(PathToDists, "ESPixelStick_Firmware-" + ConfigData.version.name), "firmware");
+    console.info("FirmwarePath: '" + FirmwarePath + "'");
 
     console.info("create the combined FS + Bin image");
     MergeParameters = [];

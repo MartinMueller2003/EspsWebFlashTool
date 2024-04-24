@@ -7,6 +7,7 @@ var DiagTimer = null;
 // global data
 var System_Config = null;
 var Firmware_Boards = null;
+var VersionList = null;
 var ManifestUrl = null;
 var selector = [];
 var target = document.location.host;
@@ -75,6 +76,7 @@ const ServerAccess = new Semaphore(1);
 // MonitorServerConnection();
 RequestFirmware();
 RequestConfig();
+RequestVersionList();
 
 // jQuery doc ready
 $(function () 
@@ -146,8 +148,16 @@ async function RequestManifest()
     let ManifestRequest = {};
     ManifestRequest.system = System_Config;
     ManifestRequest.platform = $('#BoardSelector').find(":selected").val();
+    var VersionString = $('#VersionSelector').find(":selected").val();
+    const VersionArray = VersionString.split(",");
+    ManifestRequest.version = 
+    {
+        "date" : VersionArray[0],
+        "time" : VersionArray[1],
+        "name" : VersionArray[2]
+    };
 
-    // console.info("ManifestRequest: " + JSON.stringify(ManifestRequest));
+    console.info("ManifestRequest: " + JSON.stringify(ManifestRequest));
 
     await $.post("HTTPS://" + target + ApiHdr + "manifest" , ManifestRequest, function(data)
     {
@@ -182,7 +192,6 @@ async function ReleaseManifest()
     });
 
 } // ReleaseManifest
-
 
 function ProcessReceivedJsonConfigMessage(JsonConfigData) {
     // console.info("ProcessReceivedJsonConfigMessage: Start");
@@ -231,6 +240,44 @@ function ProcessReceivedJsonConfigMessage(JsonConfigData) {
     // console.info("ProcessReceivedJsonConfigMessage: Done");
 
 } // ProcessReceivedJsonConfigMessage
+
+async function RequestVersionList()
+{
+    console.log("RequestVersionList");
+    let data = "";
+    await $.getJSON("HTTPS://" + target + ApiHdr + "versions", function(data)
+    {
+        console.log("RequestVersionList: " + JSON.stringify(data));
+        ProcessReceivedJsonVersionsMessage(data);
+        return true;
+    })
+    .fail(function()
+    {
+        console.error("Could not get Versions list");
+        return false;
+    });
+
+} // RequestVersionList
+
+function ProcessReceivedJsonVersionsMessage(JsonData) {
+    console.info("ProcessReceivedJsonVersionsMessage: Start");
+
+    VersionList = JsonData;
+    // iterate the list of versions and 
+    // build selection list
+    $.each (VersionList, function (index, Currentversion)
+    {
+        $('<option/>', { value : Currentversion.date + "," + Currentversion.time + "," + Currentversion.name }).text(Currentversion.name + " " + Currentversion.date + ":" + Currentversion.time).appendTo('#VersionSelector');
+        console.info("Currentversion: '" + Currentversion.name + "'");
+    });
+
+    // now sort the options
+    $("#VersionSelector").html($("#VersionSelector option").sort(function (a, b)
+    {
+        return a.text == b.text ? 0 : a.text < b.text ? -1 : 1
+    }));
+
+} // ProcessReceivedJsonVersionsMessage
 
 async function RequestFirmware()
 {
@@ -282,7 +329,7 @@ function ProcessReceivedJsonFirmwareMessage(JsonData) {
         console.error("unknown Firmware record type has been ignored.")
     }
     // console.info("ProcessReceivedJsonFirmwareMessage: Done");
-} // ProcessReceivedJsonConfigMessage
+} // ProcessReceivedJsonFirmwareMessage
 
 // Builds jQuery selectors from JSON data and updates the web interface
 function updateFromJSON(obj) {

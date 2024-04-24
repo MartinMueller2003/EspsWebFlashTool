@@ -4,6 +4,7 @@ var https = require('https');
 const cors = require("cors");
 const path = require('path'); 
 const manifest = require('./manifest.js');
+const BinImage = require('./BinImage.js');
 const PORT = 5000;
 
 var fs = require("fs");
@@ -12,11 +13,16 @@ var logger = require('morgan');
 const ApiHdr = "/api/ESPSWFT/v1/";
 const PathToSessionData = path.join(__dirname, "../sessions");
 const PathToDistData = path.join(__dirname, "../dist");
+const PathToDistList = path.join(__dirname, "../dists");
 const PathToCerts = path.join(__dirname, "../certs");
 const PathToHtmlData = path.join(__dirname, "../html");
 const PathToConfigData = path.join(PathToHtmlData, "conf");
 
 manifest.begin(PathToSessionData);
+var VersionList = [];
+BinImage.GenerateVersionList(PathToDistList, VersionList);
+console.info("GenerateVersionList - Done");
+
 app.use(cors());
 app.use(bodyParser.urlencoded({  extended: true }));
 
@@ -35,14 +41,21 @@ app.use(Express.json());
  {
     var RootUrl = ApiHdr + "sessions/";
 
-    // console.info("manifest body: " + JSON.stringify(req.body.platform));
+    // console.info("manifest body: " + JSON.stringify(req.body));
     // console.info("manifest hostname: " + req.hostname);
     // console.info("manifest RootUrl: " + RootUrl);
 
-    var responseData = await manifest.GenerateImageAndManifest (PathToDistData, req.body, PathToSessionData, RootUrl);
+    var responseData = await manifest.GenerateImageAndManifest (PathToDistData, PathToDistList, req.body, PathToSessionData, RootUrl);
     res.send( responseData );
  });
 
+  // process a request to get a list of versions we can supply.
+  app.get(ApiHdr + "versions", async function (req, res) 
+  {
+      // console.info("versions: " + JSON.stringify(VersionList));
+      res.send( JSON.stringify(VersionList) );
+  });
+ 
  // handle a session termination request
  app.delete(ApiHdr + "sessions", async function (req, res) 
  {
