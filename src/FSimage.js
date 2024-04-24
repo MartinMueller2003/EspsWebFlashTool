@@ -5,6 +5,7 @@
 const fs = require("fs");
 const path = require('path'); 
 const spawnSync = require("child_process").spawnSync;
+const os = require("os"); 
 
 exports.GenerateFsImage = async function (DistLocation, PathToDists, ConfigData, ImageDestinationDir)
 {
@@ -40,11 +41,36 @@ exports.GenerateFsImage = async function (DistLocation, PathToDists, ConfigData,
     var PlatformInfo = await GetBoardParameters(ConfigData.platform, SourceDistPath, FsParameters);
     FsParameters.push(ImageDestinationDir + "/fs.bin"); // must be last
 
-    // TODO - make this environment dependent
-    var OSBin = "bin/win32/"; 
+    var OSBin = path.join(DistLocation, "bin"); 
+    let osVersion = os.version().toLowerCase(); 
+    if(-1 !== osVersion.indexOf("windows"))
+    {
+        OSBin = path.join(OSBin, "win32");
+    }
+    else if(-1 !== osVersion.indexOf("linux"))
+    {
+        OSBin = path.join(OSBin, "linux64");
+    }
+    else if(-1 !== osVersion.indexOf("ubuntu"))
+    {
+        OSBin = path.join(OSBin, "linux64");
+    }
+    else if(-1 !== osVersion.indexOf("darwin"))
+    {
+        OSBin = path.join(OSBin, "macos");
+    }
+    else
+    {
+        console.error("Could not determine OS type. Got: '" + osVersion + "'");
+        return;
+    }
+
+    // console.info("osVersion: " + osVersion);
+    // console.info("OSBin: " + OSBin);
+    
     // make the fs image
     // const Process = spawnSync(path.join(DistLocation, OSBin + "mklittlefs.exe"), FsParameters, { stdio: 'inherit' });
-    const Process = spawnSync(path.join(DistLocation, OSBin + "mklittlefs.exe"), FsParameters);
+    const Process = spawnSync(path.join(OSBin, "mklittlefs.exe"), FsParameters);
 
     // console.info("GenerateFsImage - Done");
     return PlatformInfo;
