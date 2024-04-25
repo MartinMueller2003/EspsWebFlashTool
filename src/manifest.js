@@ -122,15 +122,15 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
 
     ManifestTarget = path.join(ImageDestinationDir, "manifest.json");
     // console.info("ManifestTarget: " + ManifestTarget);
-    fs.writeFile (ManifestTarget, JSON.stringify(currentManifest), function(err)
+    fs.writeFileSync (ManifestTarget, JSON.stringify(currentManifest), function(err)
     {
         if (err) throw err;
         // console.log('complete');
     });
 
     // clean up the files to remove sensitive data
-    fs.rmSync(path.join(ImageDestinationDir, "fs.bin"));
-    fs.rmSync(path.join(ImageDestinationDir, "fs"), { recursive: true });
+    fs.rmSync(path.join(ImageDestinationDir, "fs.bin"), {force: true});
+    fs.rmSync(path.join(ImageDestinationDir, "fs"), { force: true, recursive: true });
 
     return (ManifestUrl);
 
