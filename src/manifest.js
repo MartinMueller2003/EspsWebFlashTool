@@ -45,13 +45,13 @@ exports.begin = function (ImageDestinationDir)
                 if(deltaTime > MaxAgeInMs)
                 {
                     // console.info("clean up the directory");
-                    fs.rmSync(filePath, { recursive: true });
+                    fs.rmSync(filePath, { force: true, recursive: true });
                 }
             } 
             else 
             {
                 // console.info("no files allowed in this directory");
-                fs.rmSync(filePath);
+                fs.rmSync(filePath, { force: true, recursive: true });
             }
         }       
     }, MaxAgeInMs);
@@ -77,7 +77,10 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
     console.info ("create the file system image");
     var PlatformInfo = await FSimage.GenerateFsImage(ToolsLocation, PathToDists, ConfigData, ImageDestinationDir);
     const FirmwarePath = path.join(path.join(PathToDists, "ESPixelStick_Firmware-" + ConfigData.version.name), "firmware");
-    console.info("FirmwarePath: '" + FirmwarePath + "'");
+    // console.info("FirmwarePath: '" + FirmwarePath + "'");
+    const FsImageTarget = path.join(ImageDestinationDir, "fs.bin");
+    console.info("Make FS image done - done: " + fs.statfsSync(FsImageTarget));
+
 
     console.info("create the combined FS + Bin image");
     MergeParameters = [];
@@ -101,10 +104,12 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
     });
 
     MergeParameters.push(PlatformInfo.filesystem.offset);
-    MergeParameters.push(path.join(ImageDestinationDir, "fs.bin"));
+    MergeParameters.push(FsImageTarget);
 
-    const Process = spawnSync("python", MergeParameters, { stdio: 'inherit' });
-    // console.info("make the combined image - done");
+    // console.info("MergeParameters: " + MergeParameters);
+    spawnSync("ls -al", { stdio: 'inherit' });
+    const Process = spawnSync("python3", MergeParameters, { stdio: 'inherit' });
+    console.info("make the combined image - done: " + fs.statfsSync(ImageTarget));
 
     // build the URLs
     const SessionUrl = RootUrl + SessionDir;
@@ -130,7 +135,7 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
 
     // clean up the files to remove sensitive data
     fs.rmSync(path.join(ImageDestinationDir, "fs.bin"), {force: true});
-    fs.rmSync(path.join(ImageDestinationDir, "fs"), { force: true, recursive: true });
+    fs.rmSync(path.join(ImageDestinationDir, "fs"), {force: true, recursive: true });
 
     return (ManifestUrl);
 

@@ -43,21 +43,26 @@ exports.GenerateFsImage = async function (DistLocation, PathToDists, ConfigData,
 
     var OSBin = path.join(DistLocation, "bin"); 
     let osVersion = os.version().toLowerCase(); 
+    let exeName = "";
     if(-1 !== osVersion.indexOf("windows"))
     {
         OSBin = path.join(OSBin, "win32");
+        exeName = "mklittlefs.exe";
     }
     else if(-1 !== osVersion.indexOf("linux"))
     {
         OSBin = path.join(OSBin, "linux64");
+        exeName = "mklittlefs";
     }
     else if(-1 !== osVersion.indexOf("ubuntu"))
     {
         OSBin = path.join(OSBin, "linux64");
+        exeName = "mklittlefs";
     }
     else if(-1 !== osVersion.indexOf("darwin"))
     {
         OSBin = path.join(OSBin, "macos");
+        exeName = "mklittlefs";
     }
     else
     {
@@ -67,12 +72,14 @@ exports.GenerateFsImage = async function (DistLocation, PathToDists, ConfigData,
 
     // console.info("osVersion: " + osVersion);
     // console.info("OSBin: " + OSBin);
-    
-    // make the fs image
-    // const Process = spawnSync(path.join(DistLocation, OSBin + "mklittlefs.exe"), FsParameters, { stdio: 'inherit' });
-    const Process = spawnSync(path.join(OSBin, "mklittlefs.exe"), FsParameters);
+    const ExePath = path.join(OSBin, exeName);
+    // console.info("ExePath: " + ExePath);
 
-    // console.info("GenerateFsImage - Done");
+    // make the fs image
+    // const Process = spawnSync(ExePath, FsParameters, { stdio: 'inherit' });
+    const Process = spawnSync(ExePath, FsParameters);
+
+    // console.info("GenerateFsImage - Done:" + fs.statSync(ImageDestinationDir + "/fs.bin"));
     return PlatformInfo;
 
 }; // GenerateFsImage

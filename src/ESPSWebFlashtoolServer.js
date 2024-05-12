@@ -88,9 +88,4 @@ var options = {
     cert: fs.readFileSync(path.join(PathToCerts, 'cert.cert'))
   };
 https.createServer(options, app).listen(PORT);
-/*
-var server = app.listen(PORT, function () {
-    console.log("Express App running at http://127.0.0.1:" + PORT + "/");
- });
-*/
- console.info("Server Init Done");
+console.info("Server Init Done");

@@ -1,21 +1,11 @@
 /*
- * Copyright (c) 2016-2019 Espressif Systems (Shanghai) PTE LTD & Cesanta Software Limited
- * All rights reserved
+ * SPDX-FileCopyrightText: 2016 Cesanta Software Limited
  *
- * This file is part of the esptool.py binary flasher stub.
+ * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation; either version 2 of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
- * Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * SPDX-FileContributor: 2016-2022 Espressif Systems (Shanghai) CO LTD
  */
+
 #include "soc_support.h"
 #include "stub_write_flash.h"
 #include "stub_flasher.h"
@@ -50,8 +40,9 @@ static struct {
 
 /* SPI status bits */
 static const uint32_t STATUS_WIP_BIT = (1 << 0);
-static const uint32_t STATUS_CMP_BIT = (1 << 14); /* Complement Protect */
-static const uint32_t STATUS_QIE_BIT = (1 << 9); /* Quad Enable */
+#if ESP32_OR_LATER
+static const uint32_t STATUS_QIE_BIT = (1 << 9);  /* Quad Enable */
+#endif
 
 bool is_in_flash_mode(void)
 {
@@ -71,7 +62,7 @@ inline static void spi_wait_ready(void)
   /* Wait for SPI state machine ready */
   while((READ_REG(SPI_EXT2_REG) & SPI_ST))
     { }
-#ifdef ESP32
+#if ESP32_OR_LATER
   while(READ_REG(SPI0_EXT2_REG) & SPI_ST)
   { }
 #endif
@@ -104,8 +95,8 @@ static void spi_write_enable(void)
     { }
 }
 
-#ifdef ESP32
-static esp_rom_spiflash_chip_t *flashchip = (esp_rom_spiflash_chip_t *)0x3ffae270;
+#if ESP32_OR_LATER
+static esp_rom_spiflash_chip_t *flashchip = (esp_rom_spiflash_chip_t *)ROM_SPIFLASH_LEGACY;
 
 /* Stub version of SPIUnlock() that replaces version in ROM.
 
@@ -119,9 +110,15 @@ SpiFlashOpResult SPIUnlock(void)
   uint32_t status;
 
   spi_wait_ready(); /* ROM SPI_read_status_high() doesn't wait for this */
+#if ESP32S2_OR_LATER
+  if (SPI_read_status_high(flashchip, &status) != SPI_FLASH_RESULT_OK) {
+    return SPI_FLASH_RESULT_ERR;
+  }
+#else
   if (SPI_read_status_high(&status) != SPI_FLASH_RESULT_OK) {
     return SPI_FLASH_RESULT_ERR;
   }
+#endif // ESP32S2_OR_LATER
 
   /* Clear all bits except QIE, if it is set.
      (This is different from ROM SPIUnlock, which keeps all bits as-is.)
@@ -137,7 +134,68 @@ SpiFlashOpResult SPIUnlock(void)
 
   return SPI_FLASH_RESULT_OK;
 }
-#endif
+#endif // ESP32_OR_LATER
+
+#if defined(ESP32S3) && !defined(ESP32S3BETA2)
+static esp_rom_spiflash_result_t page_program_internal(int spi_num, uint32_t spi_addr, uint8_t* addr_source, uint32_t byte_length)
+{
+    uint32_t  temp_addr;
+    int32_t  temp_bl;
+    esp_rom_opiflash_wait_idle();
+    temp_addr = spi_addr;
+    temp_bl = byte_length;
+    uint32_t temp_len = 0;
+
+    const uint16_t cmd = CMD_PROGRAM_PAGE_4B;
+    uint8_t cmd_len = 8;
+    int dummy = 0;
+
+    while (temp_bl > 0 ) {
+        esp_rom_opiflash_wren();
+        temp_len =  (temp_bl >= 32) ? 32 : temp_bl;   //32 = write_sub_len
+        esp_rom_opiflash_exec_cmd(spi_num, SPI_FLASH_FASTRD_MODE,
+                            cmd, cmd_len,
+                            temp_addr, 32,
+                            dummy,
+                            addr_source, 8 * temp_len,
+                            NULL, 0,
+                            ESP_ROM_OPIFLASH_SEL_CS0,
+                            true);
+        esp_rom_opiflash_wait_idle();
+        addr_source += temp_len;
+        temp_addr += temp_len;
+        temp_bl -= temp_len;
+    }
+    return ESP_ROM_SPIFLASH_RESULT_OK;
+}
+#endif // ESP32S3
+
+#if defined(ESP32S3) && !defined(ESP32S3BETA2)
+static esp_rom_spiflash_result_t SPIWrite4B(int spi_num, uint32_t target, uint8_t *src_addr, int32_t len)
+{
+    uint32_t  page_size = 256;
+    uint32_t  pgm_len, pgm_num;
+    uint8_t    i;
+
+    esp_rom_opiflash_wait_idle();
+    pgm_len = page_size - (target % page_size);
+    if (len < pgm_len) {
+        page_program_internal(spi_num, target, src_addr, len);
+    } else {
+        page_program_internal(spi_num, target, src_addr, pgm_len);
+        //whole page program
+        pgm_num = (len - pgm_len) / page_size;
+        for (i = 0; i < pgm_num; i++) {
+            page_program_internal(spi_num, target + pgm_len, (src_addr + pgm_len), page_size);
+            pgm_len += page_size;
+        }
+        //remain parts to program
+        page_program_internal(spi_num, target + pgm_len, (src_addr + pgm_len), len - pgm_len);
+    }
+    esp_rom_opiflash_wait_idle();
+    return  ESP_ROM_SPIFLASH_RESULT_OK;
+}
+#endif // defined(ESP32S3) && !defined(ESP32S3BETA2)
 
 esp_command_error handle_flash_begin(uint32_t total_size, uint32_t offset) {
   fs.in_flash_mode = true;
@@ -147,9 +205,19 @@ esp_command_error handle_flash_begin(uint32_t total_size, uint32_t offset) {
   fs.remaining_erase_sector = ((offset % FLASH_SECTOR_SIZE) + total_size + FLASH_SECTOR_SIZE - 1) / FLASH_SECTOR_SIZE;
   fs.last_error = ESP_OK;
 
+#if defined(ESP32S3) && !defined(ESP32S3BETA2)
+  if (large_flash_mode) {
+    esp_rom_opiflash_wait_idle();
+  } else {
+    if (SPIUnlock() != 0) {
+        return ESP_FAILED_SPI_UNLOCK;
+    }
+  }
+#else
   if (SPIUnlock() != 0) {
     return ESP_FAILED_SPI_UNLOCK;
   }
+#endif //defined(ESP32S3) and !defined(ESP32S3BETA2)
 
   return ESP_OK;
 }
@@ -174,28 +242,75 @@ esp_command_error handle_flash_deflated_begin(uint32_t uncompressed_size, uint32
  */
 static void start_next_erase(void)
 {
+  bool block_erase = false;
+
   if(fs.remaining_erase_sector == 0)
     return; /* nothing left to erase */
   if(!spiflash_is_ready())
     return; /* don't wait for flash to be ready, caller will call again if needed */
 
-  spi_write_enable();
-
-  uint32_t command = SPI_FLASH_SE; /* sector erase, 4KB */
-  uint32_t sectors_to_erase = 1;
   if(fs.remaining_erase_sector >= SECTORS_PER_BLOCK
      && fs.next_erase_sector % SECTORS_PER_BLOCK == 0) {
     /* perform a 64KB block erase if we have space for it */
-    command = SPI_FLASH_BE;
-    sectors_to_erase = SECTORS_PER_BLOCK;
+    block_erase = true;
   }
 
-  uint32_t addr = fs.next_erase_sector * FLASH_SECTOR_SIZE;
+  spi_write_enable();
   spi_wait_ready();
-  WRITE_REG(SPI_ADDR_REG, addr & 0xffffff);
-  WRITE_REG(SPI_CMD_REG, command);
-  while(READ_REG(SPI_CMD_REG) != 0)
-    { }
+  #if defined(ESP32S3) && !defined(ESP32S3BETA2)
+      if (large_flash_mode) {
+        if (block_erase) {
+          if (fs.next_erase_sector * FLASH_SECTOR_SIZE < (1 << 24)) {
+            esp_rom_opiflash_wait_idle();
+            esp_rom_opiflash_wren();
+
+            esp_rom_opiflash_exec_cmd(1, SPI_FLASH_SLOWRD_MODE,
+                                CMD_LARGE_BLOCK_ERASE, 8,
+                                fs.next_erase_sector * FLASH_SECTOR_SIZE, 24,
+                                0,
+                                NULL, 0,
+                                NULL, 0,
+                                1,
+                                true);
+            esp_rom_opiflash_wait_idle();
+          } else {
+            esp_rom_opiflash_erase_block_64k(fs.next_erase_sector / SECTORS_PER_BLOCK);
+          }
+        }
+        else {
+          if (fs.next_erase_sector * FLASH_SECTOR_SIZE < (1 << 24)) {
+            esp_rom_opiflash_wait_idle();
+            esp_rom_opiflash_wren();
+
+            esp_rom_opiflash_exec_cmd(1, SPI_FLASH_SLOWRD_MODE,
+                                CMD_SECTOR_ERASE, 8,
+                                fs.next_erase_sector * FLASH_SECTOR_SIZE, 24,
+                                0,
+                                NULL, 0,
+                                NULL, 0,
+                                1,
+                                true);
+            esp_rom_opiflash_wait_idle();
+          } else {
+            esp_rom_opiflash_erase_sector(fs.next_erase_sector);
+          }
+        }
+      } else {
+          uint32_t addr = fs.next_erase_sector * FLASH_SECTOR_SIZE;
+          uint32_t command = block_erase ? SPI_FLASH_BE : SPI_FLASH_SE; /* block erase, 64KB : sector erase, 4KB */
+          WRITE_REG(SPI_ADDR_REG, addr & 0xffffff);
+          WRITE_REG(SPI_CMD_REG, command);
+          while(READ_REG(SPI_CMD_REG) != 0) { }
+      }
+  #else
+    uint32_t addr = fs.next_erase_sector * FLASH_SECTOR_SIZE;
+    uint32_t command = block_erase ? SPI_FLASH_BE : SPI_FLASH_SE; /* block erase, 64KB : sector erase, 4KB */
+    WRITE_REG(SPI_ADDR_REG, addr & 0xffffff);
+    WRITE_REG(SPI_CMD_REG, command);
+    while(READ_REG(SPI_CMD_REG) != 0) { }
+  #endif // defined(ESP32S3) && !defined(ESP32S3BETA2)
+
+  uint32_t sectors_to_erase = block_erase ? SECTORS_PER_BLOCK : 1;
   fs.remaining_erase_sector -= sectors_to_erase;
   fs.next_erase_sector += sectors_to_erase;
 }
@@ -207,6 +322,7 @@ static void start_next_erase(void)
 */
 void handle_flash_data(void *data_buf, uint32_t length) {
   int last_sector;
+  uint8_t res = 0;
 
   if (length > fs.remaining) {
       /* Trim the final block, as it may have padding beyond
@@ -229,15 +345,22 @@ void handle_flash_data(void *data_buf, uint32_t length) {
     {}
 
   /* do the actual write */
-  if (SPIWrite(fs.next_write, data_buf, length)) {
+  #if defined(ESP32S3) && !defined(ESP32S3BETA2)
+      if (large_flash_mode){
+        res = SPIWrite4B(1, fs.next_write, data_buf, length);
+      } else {
+        res = SPIWrite(fs.next_write, data_buf, length);
+      }
+  #else
+    res = SPIWrite(fs.next_write, data_buf, length);
+  #endif // defined(ESP32S3) && !defined(ESP32S3BETA2)
+  if (res != 0)
     fs.last_error = ESP_FAILED_SPI_OP;
-  }
   fs.next_write += length;
   fs.remaining -= length;
 }
 
-
-#ifdef ESP32
+#if !ESP8266
 /* Write encrypted data to flash (either direct for non-compressed upload, or
    freshly decompressed.) Erases as it goes.
 
@@ -245,6 +368,11 @@ void handle_flash_data(void *data_buf, uint32_t length) {
 */
 void handle_flash_encrypt_data(void *data_buf, uint32_t length) {
   int last_sector;
+  int res;
+
+#if ESP32S2_OR_LATER
+  SPI_Write_Encrypt_Enable();
+#endif
 
   if (length > fs.remaining) {
       /* Trim the final block, as it may have padding beyond
@@ -267,15 +395,33 @@ void handle_flash_encrypt_data(void *data_buf, uint32_t length) {
     {}
 
   /* do the actual write */
-  if (esp_rom_spiflash_write_encrypted(fs.next_write, data_buf, length)) {
+#if ESP32
+  res = esp_rom_spiflash_write_encrypted(fs.next_write, data_buf, length);
+#else
+  res = SPI_Encrypt_Write(fs.next_write, data_buf, length);
+#endif
+
+  if (res) {
     fs.last_error = ESP_FAILED_SPI_OP;
   }
   fs.next_write += length;
   fs.remaining -= length;
-}
+
+#if ESP32S2_OR_LATER
+  SPI_Write_Encrypt_Disable();
 #endif
+}
+
+#endif // !ESP8266
 
 void handle_flash_deflated_data(void *data_buf, uint32_t length) {
+  /* if all data has been uploaded and another block comes,
+     accept it only if it is part of a 4-byte Adler-32 checksum */
+  if (fs.remaining == 0 && length > 4) {
+    fs.last_error = ESP_TOO_MUCH_DATA;
+    return;
+  }
+
   static uint8_t out_buf[32768];
   static uint8_t *next_out = out_buf;
   int status = TINFL_STATUS_NEEDS_MORE_INPUT;
@@ -302,7 +448,7 @@ void handle_flash_deflated_data(void *data_buf, uint32_t length) {
 
     next_out += out_bytes;
     size_t bytes_in_out_buf = next_out - out_buf;
-    if (status <= TINFL_STATUS_DONE || bytes_in_out_buf == sizeof(out_buf)) {
+    if (status == TINFL_STATUS_DONE || bytes_in_out_buf == sizeof(out_buf)) {
       // Output buffer full, or done
       handle_flash_data(out_buf, bytes_in_out_buf);
       next_out = out_buf;
@@ -316,9 +462,6 @@ void handle_flash_deflated_data(void *data_buf, uint32_t length) {
 
   if (status == TINFL_STATUS_DONE && fs.remaining > 0) {
     fs.last_error = ESP_NOT_ENOUGH_DATA;
-  }
-  if (status != TINFL_STATUS_DONE && fs.remaining == 0) {
-    fs.last_error = ESP_TOO_MUCH_DATA;
   }
 }
 
