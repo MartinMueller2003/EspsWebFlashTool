@@ -4,7 +4,7 @@ const Winston = require ("winston");
 const { format, createLogger, transports } = require("winston");
 var https = require('https');
 const cors = require("cors");
-const path = require('path'); 
+const path = require('path');
 const manifest = require('./manifest.js');
 const BinImage = require('./BinImage.js');
 const PORT = 5000;
@@ -42,7 +42,7 @@ const logger = Winston.createLogger(
             {
                 filename: LogFileName,
                 level: 'info',
-                maxsize: 500
+                maxsize: 5000000
             }),
         ]
     });
