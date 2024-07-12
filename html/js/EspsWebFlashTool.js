@@ -129,11 +129,11 @@ $(function ()
 
 async function RequestConfig()
 {
-    console.log("RequestConfig: ");
+    // console.log("RequestConfig: ");
 
     await $.getJSON("HTTPS://" + target + ApiHdr + "config", function(data)
     {
-        console.log("RequestConfig: " + JSON.stringify(data));
+        // console.log("RequestConfig: " + JSON.stringify(data));
         ProcessReceivedJsonConfigMessage(data);
         return true;
     })
@@ -198,12 +198,12 @@ async function ReleaseManifest()
 } // ReleaseManifest
 
 function ProcessReceivedJsonConfigMessage(JsonConfigData) {
-    console.info("ProcessReceivedJsonConfigMessage: Start");
+    // console.info("ProcessReceivedJsonConfigMessage: Start");
 
     // is this a device config?
     if ({}.hasOwnProperty.call(JsonConfigData, "system")) {
         System_Config = JsonConfigData.system;
-        console.info("Got System Config: " + JSON.stringify(System_Config) );
+        // console.info("Got System Config: " + JSON.stringify(System_Config) );
 
         updateFromJSON(System_Config);
 
@@ -428,7 +428,7 @@ function ExtractNetworkConfigFromHtmlPage() {
     ExtractNetworkWiFiConfigFromHtmlPage();
     ExtractNetworkEthernetConfigFromHtmlPage();
 
-    console.info(JSON.stringify(System_Config));
+    // console.info(JSON.stringify(System_Config));
 
 } // ExtractNetworkConfigFromHtmlPage
 
@@ -548,7 +548,7 @@ async function SendCommand(command)
             redirect: "follow", // manual, *follow, error
             referrerPolicy: "no-referrer" // no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url
         })
-        .then(async webResponse => 
+        .then(async webResponse =>
         {
             const isJson = webResponse.headers.get('content-type')?.includes('application/json');
             const data = isJson && await webResponse.json();
@@ -568,7 +568,7 @@ async function SendCommand(command)
             }
             return webResponse.ok ? 1 : 0;
         })
-        .catch(error => 
+        .catch(error =>
         {
             console.error('SendCommand: Error: ', error);
             return -1;
