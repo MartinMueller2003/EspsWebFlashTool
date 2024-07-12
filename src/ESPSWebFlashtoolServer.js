@@ -67,10 +67,11 @@ app.use(Express.json());
 // processing for the API calls
 
  // process a request to create a mono image and manifest.
- app.post(ApiHdr + "manifest", async function (req, res) 
+ app.post(ApiHdr + "manifest", async function (req, res)
  {
     var RootUrl = ApiHdr + "sessions/";
 
+    // console.info("manifest body: " + JSON.stringify(req.body));
     // logger.info("manifest body: " + JSON.stringify(req.body));
     // logger.info("manifest hostname: " + req.hostname);
     // logger.info("manifest RootUrl: " + RootUrl);
