@@ -78,7 +78,7 @@ RequestConfig();
 RequestVersionList();
 
 // jQuery doc ready
-$(function () 
+$(function ()
 {
     // DHCP field toggles
     $('#wifi #dhcp').on("change", (function () {
@@ -89,7 +89,7 @@ $(function ()
         else {
             $('.wifiDhcp').removeClass('hidden');
         }
-        $('#btn_flash').prop("disabled", ValidateConfigFields($("#network #wifi input")));
+        $('#btn_flash').prop("disabled", !ValidateConfigFields());
     }));
 
     $('#eth #dhcp').on("change", (function () {
@@ -100,11 +100,12 @@ $(function ()
         else {
             $('.ethdhcp').removeClass('hidden');
         }
-        $('#btn_flash').prop("disabled", ValidateConfigFields($("#network #wifi input")));
+        $('#btn_flash').prop("disabled", !ValidateConfigFields());
     }));
 
     $('#network').on("input", (function () {
-        $('#btn_flash').prop("disabled", ValidateConfigFields($("#network #wifi input")));
+        // console.info("Change on network page");
+        $('#btn_flash').prop("disabled", !ValidateConfigFields());
     }));
 
     $('#btn_flash').on("click", (function () {
@@ -128,11 +129,11 @@ $(function ()
 
 async function RequestConfig()
 {
-    // console.log("RequestConfig: ");
+    console.log("RequestConfig: ");
 
     await $.getJSON("HTTPS://" + target + ApiHdr + "config", function(data)
     {
-        // console.log("RequestConfig: " + JSON.stringify(data));
+        console.log("RequestConfig: " + JSON.stringify(data));
         ProcessReceivedJsonConfigMessage(data);
         return true;
     })
@@ -153,7 +154,7 @@ async function RequestManifest()
     ManifestRequest.platform = $('#BoardSelector').find(":selected").val();
     var VersionString = $('#VersionSelector').find(":selected").val();
     const VersionArray = VersionString.split(",");
-    ManifestRequest.version = 
+    ManifestRequest.version =
     {
         "date" : VersionArray[0],
         "time" : VersionArray[1],
@@ -197,12 +198,12 @@ async function ReleaseManifest()
 } // ReleaseManifest
 
 function ProcessReceivedJsonConfigMessage(JsonConfigData) {
-    // console.info("ProcessReceivedJsonConfigMessage: Start");
+    console.info("ProcessReceivedJsonConfigMessage: Start");
 
     // is this a device config?
     if ({}.hasOwnProperty.call(JsonConfigData, "system")) {
         System_Config = JsonConfigData.system;
-        // console.info("Got System Config: " + JSON.stringify(System_Config) );
+        console.info("Got System Config: " + JSON.stringify(System_Config) );
 
         updateFromJSON(System_Config);
 
@@ -241,6 +242,7 @@ function ProcessReceivedJsonConfigMessage(JsonConfigData) {
     }
 
     // console.info("ProcessReceivedJsonConfigMessage: Done");
+    $('#btn_flash').prop("disabled", !ValidateConfigFields());
 
 } // ProcessReceivedJsonConfigMessage
 
@@ -426,6 +428,8 @@ function ExtractNetworkConfigFromHtmlPage() {
     ExtractNetworkWiFiConfigFromHtmlPage();
     ExtractNetworkEthernetConfigFromHtmlPage();
 
+    console.info(JSON.stringify(System_Config));
+
 } // ExtractNetworkConfigFromHtmlPage
 
 async function GetFlashImage()
@@ -442,38 +446,44 @@ async function GetFlashImage()
     // console.info("ManifestUrl: '" + ManifestUrl + "'");
     $("#FlashButton").attr("manifest", ManifestUrl);
     $("#FlashButton").attr("showLog", true);
-    
+
     const InstallButton = document.querySelector('esp-web-install-button');
     await InstallButton.shadowRoot.children.activate.children[0].click();
 
 } // GetFlashImage
 
-function ValidateConfigFields(ElementList) {
-    // return true if errors were found
-    let response = false;
+function ValidateConfigFields() {
+    // console.info("ValidateConfigFields");
+    // return false if errors were found
+    let response = true;
 
-    for (let ChildElementId = 0;
-        ChildElementId < ElementList.length;
-        ChildElementId++) {
-        let ChildElement = ElementList[ChildElementId];
-        // let ChildType = ChildElement.type;
+    let inputs = document.querySelectorAll('#network .required-entry, input');
 
-        if ((ChildElement.validity.valid !== undefined) && (!$(ChildElement).hasClass('hidden'))) {
-            // console.info("ChildElement.validity.valid: " + ChildElement.validity.valid);
-            if (false === ChildElement.validity.valid) {
-                // console.info("          Element: " + ChildElement.id);
-                // console.info("   ChildElementId: " + ChildElementId);
-                // console.info("ChildElement Type: " + ChildType);
-                response = true;
+    if(undefined !== inputs)
+    {
+        inputs.forEach(function(InputElement)
+        {
+            if ((InputElement.validity.valid !== undefined) &&
+                (!$(InputElement).hasClass('hidden')))
+            {
+                // console.log(InputElement);
+                // console.info("InputElement.validity.valid: " + InputElement.validity.valid);
+                if (false === InputElement.validity.valid)
+                {
+                    // console.log(InputElement);
+                    // console.info("Invalid Element Value: " + InputElement.value);
+                    response = false;
+                }
             }
-        }
+        });
     }
+
     return response;
 
 } // ValidateConfigFields
 
 // Ping every 4sec
-function MonitorServerConnection() 
+function MonitorServerConnection()
 {
     // console.info("MonitorServerConnection");
     let MonitorTransactionRequestInProgress = false;
@@ -515,7 +525,7 @@ jQuery.each( [ "put", "delete" ], function( i, method ) {
         callback = data;
         data = undefined;
       }
-  
+
       return jQuery.ajax({
         url: url,
         type: method,
