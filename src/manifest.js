@@ -47,13 +47,13 @@ exports.begin = function (ImageDestinationDir)
                     // console.info("clean up the directory");
                     fs.rmSync(filePath, { force: true, recursive: true });
                 }
-            } 
-            else 
+            }
+            else
             {
                 // console.info("no files allowed in this directory");
                 fs.rmSync(filePath, { force: true, recursive: true });
             }
-        }       
+        }
     }, MaxAgeInMs);
 }; // begin
 
@@ -61,7 +61,18 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
 {
     // console.info("DistLocation: '" + DistLocation + "'");
     // console.info("ConfigData: '" + ConfigData.platform + "'");
-    
+    // console.info("ConfigData: '" + JSON.stringify(ConfigData) + "'");
+
+    // This is the wrong way to fix this but I need a hack right now.
+    ConfigData.system.requiresConfigSave = (ConfigData.system.requiresConfigSave === "true") ? true : false;
+    ConfigData.system.network.wifi.dhcp = (ConfigData.system.network.wifi.dhcp === "true") ? true : false;
+    ConfigData.system.network.wifi.ap_fallback = (ConfigData.system.network.wifi.ap_fallback === "true") ? true : false;
+    ConfigData.system.network.wifi.StayInApMode = (ConfigData.system.network.wifi.StayInApMode === "true") ? true : false;
+    ConfigData.system.network.wifi.ap_reboot = (ConfigData.system.network.wifi.ap_reboot === "true") ? true : false;
+    ConfigData.system.network.weus = (ConfigData.system.network.weus === "true") ? true : false;
+    ConfigData.system.network.eth.dhcp = (ConfigData.system.network.eth.dhcp === "true") ? true : false;
+    ConfigData.system.network.eth.activevalue = (ConfigData.system.network.eth.activevalue === "true") ? true : false;
+
     var SessionDir = crypto.randomBytes(16).toString('hex');
     ImageDestinationDir = path.join(ImageDestinationDir, SessionDir);
     // console.info("ImageDestinationDir: '" + ImageDestinationDir + "'");
@@ -75,6 +86,8 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
     fs.mkdirSync(ImageDestinationDir, { recursive: true });
 
     console.info ("create the file system image");
+    // console.info("AdjustedConfigData: '" + JSON.stringify(ConfigData) + "'");
+
     var PlatformInfo = await FSimage.GenerateFsImage(ToolsLocation, PathToDists, ConfigData, ImageDestinationDir);
     const FirmwarePath = path.join(path.join(PathToDists, "ESPixelStick_Firmware-" + ConfigData.version.name), "firmware");
     // console.info("FirmwarePath: '" + FirmwarePath + "'");
@@ -155,5 +168,6 @@ exports.DeleteImageAndManifest = async function (sessionId, PathToSessionData)
     }
 
     return 200;
-    
+
 } // DeleteImageAndManifest
+
