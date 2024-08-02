@@ -165,7 +165,7 @@ async function RequestManifest()
 
     await $.post("HTTPS://" + target + ApiHdr + "manifest" , ManifestRequest, function(data)
     {
-        // ManifestUrl = JSON.stringify(data);
+        ManifestUrl = JSON.stringify(data);
         ManifestUrl = data;
         // console.log("RequestManifest reply: " + ManifestUrl);
         return true;
@@ -268,25 +268,38 @@ async function ProcessReceivedJsonVersionsMessage(JsonData) {
     // console.info("ProcessReceivedJsonVersionsMessage: Start");
 
     VersionList = JsonData;
+    // console.log("VersionList : " + JSON.stringify(VersionList));
+    // sort most recent first
+    VersionList.sort(function (a, b)
+    {
+        // console.info("a.date: " + a.date);
+        // console.info("b.date: " + b.date);
+        let response = -1;
+        if(Date.parse(a.date) == Date.parse(b.date))
+        {
+            response = 0;
+        }
+        else if(Date.parse(a.date) < Date.parse(b.date))
+        {
+            response = 1
+        }
+        // console.info("response: " + response);
+        return response;
+    });
+    // console.log("VersionList : " + JSON.stringify(VersionList));
 
     // clear the existing list of versions
     $("#VersionSelector").find('option').remove();
 
-    // iterate the list of versions and 
+    // iterate the list of versions and
     // build selection list
     $.each (VersionList, function (index, Currentversion)
     {
         $('<option/>', { value : Currentversion.date + "," + Currentversion.time + "," + Currentversion.name }).text(Currentversion.name + " " + Currentversion.date + ":" + Currentversion.time).appendTo('#VersionSelector');
-        // console.info("Currentversion: '" + Currentversion.name + "'");
+        // console.info("name: '" + Currentversion.name + "'");
+        // console.info("date: '" + Currentversion.date + "'");
+        // console.info("time: '" + Currentversion.time + "'");
     });
-
-    // now sort the options
-    $("#VersionSelector").html($("#VersionSelector option").sort(function (a, b)
-    {
-        // console.info("a.text: " + a.text);
-        // console.info("b.text: " + b.text);
-        return a.text == b.text ? 0 : a.text > b.text ? -1 : 1
-    }));
 
     // update the firmware list based on the version being processed
     await RequestFirmware();
