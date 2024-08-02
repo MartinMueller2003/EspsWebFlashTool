@@ -115,8 +115,8 @@ app.use(Express.json());
 
 // start the express server
 var options = {
-    key: fs.readFileSync(path.join(PathToCerts, 'cert.pem')),
-    cert: fs.readFileSync(path.join(PathToCerts, 'cert.cert'))
+    key: fs.readFileSync(path.join(PathToCerts, 'privkey.pem')),
+    cert: fs.readFileSync(path.join(PathToCerts, 'cert.pem'))
   };
 https.createServer(options, app).listen(PORT);
 logger.info("Server Init Done.");
