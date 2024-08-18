@@ -113,7 +113,7 @@ $(function ()
     }));
 
     $('#VersionSelector').on("change", (function () {
-        RequestFirmware();
+        RequestSupportedPlatformsList();
     }));
 
     // Halt server health check if document is not visible
@@ -302,12 +302,12 @@ async function ProcessReceivedJsonVersionsMessage(JsonData) {
     });
 
     // update the firmware list based on the version being processed
-    await RequestFirmware();
+    await RequestSupportedPlatformsList();
 } // ProcessReceivedJsonVersionsMessage
 
-async function RequestFirmware()
+async function RequestSupportedPlatformsList()
 {
-    // console.log("RequestFirmware");
+    // console.log("RequestSupportedPlatformsList");
     let data = "";
     var VersionString = $('#VersionSelector').find(":selected").val();
     if(VersionString === undefined)
@@ -325,17 +325,17 @@ async function RequestFirmware()
 
     await $.post("HTTPS://" + target + ApiHdr + "firmware" , FirmwareRequest, async function(data)
     {
-        // console.log("RequestFirmware response: " + JSON.stringify(data));
+        // console.log("RequestSupportedPlatformsList response: " + JSON.stringify(data));
         await ProcessReceivedJsonFirmwareMessage(data);
         return true;
     })
     .fail(function()
     {
-        console.error("Could not get Firmwarex list");
+        console.error("Could not get Firmware list");
         return false;
     });
 
-} // RequestFirmware
+} // RequestSupportedPlatformsList
 
 async function ProcessReceivedJsonFirmwareMessage(JsonData) {
     // console.info("ProcessReceivedJsonFirmwareMessage: Start");
