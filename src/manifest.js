@@ -5,7 +5,7 @@
 const crypto = require('crypto');
 const fs = require("fs");
 const MaxAgeInMs = (30 * 60 * 1000); // minutes * seconds in a minute * miliseconds in a second
-const path = require('path'); 
+const path = require('path');
 const spawnSync = require("child_process").spawnSync;
 const FSimage = require('./FSimage.js');
 
@@ -21,7 +21,7 @@ exports.begin = function (ImageDestinationDir)
 
     fs.mkdirSync(ImageDestinationDir);
 
-    setInterval(function() 
+    setInterval(function()
     {
         // console.info("Interval reached every Hour");
         // console.info("Date(): '" + new Date().getTime() + "'");
@@ -29,9 +29,9 @@ exports.begin = function (ImageDestinationDir)
         // scan the existing directories
         const files = fs.readdirSync(ImageDestinationDir, { withFileTypes: true });
 
-        for (const file of files) 
+        for (const file of files)
         {
-            if (file.isDirectory()) 
+            if (file.isDirectory())
             {
                 const filePath = path.join(ImageDestinationDir, file.name);
                 const stats = fs.statSync(filePath);
@@ -76,8 +76,8 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
     var SessionDir = crypto.randomBytes(16).toString('hex');
     ImageDestinationDir = path.join(ImageDestinationDir, SessionDir);
     // console.info("ImageDestinationDir: '" + ImageDestinationDir + "'");
-    const ImageTarget = path.join(ImageDestinationDir, "output.bin");
-    // console.info("ImageTarget: '" + ImageTarget + "'");
+    const BinImageTarget = path.join(ImageDestinationDir, "output.bin");
+    // console.info("BinImageTarget: '" + BinImageTarget + "'");
 
     const UploadToolDir = path.join(ToolsLocation, "bin/upload.py");
     // console.info("uploadToolDir: '" + UploadToolDir + "'");
@@ -92,8 +92,7 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
     const FirmwarePath = path.join(path.join(PathToDists, "ESPixelStick_Firmware-" + ConfigData.version.name), "firmware");
     // console.info("FirmwarePath: '" + FirmwarePath + "'");
     const FsImageTarget = path.join(ImageDestinationDir, "fs.bin");
-    console.info("Make FS image done - done: " + fs.statfsSync(FsImageTarget));
-
+    console.info("Make FS image - done: " + fs.statfsSync(FsImageTarget));
 
     console.info("create the combined FS + Bin image");
     MergeParameters = [];
@@ -102,7 +101,7 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
     MergeParameters.push(PlatformInfo.chip);
     MergeParameters.push("merge_bin");
     MergeParameters.push("-o");
-    MergeParameters.push(ImageTarget);
+    MergeParameters.push(BinImageTarget);
     MergeParameters.push("--flash_mode");
     MergeParameters.push("dio");
     MergeParameters.push("--flash_freq");
@@ -122,7 +121,7 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
     // console.info("MergeParameters: " + MergeParameters);
     spawnSync("ls -al", { stdio: 'inherit' });
     const Process = spawnSync("python3", MergeParameters, { stdio: 'inherit' });
-    console.info("make the combined image - done: " + fs.statfsSync(ImageTarget));
+    console.info("make the combined image - done: " + fs.statfsSync(BinImageTarget));
 
     // build the URLs
     const SessionUrl = RootUrl + SessionDir;
