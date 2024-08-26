@@ -1,11 +1,11 @@
 /*
-    manifest.js - Functions to create and manage flash tool manifests
+    FSimage.js - Functions to create and manage flash tool manifests
  */
 
 const fs = require("fs");
-const path = require('path'); 
+const path = require('path');
 const spawnSync = require("child_process").spawnSync;
-const os = require("os"); 
+const os = require("os");
 
 exports.GenerateFsImage = async function (DistLocation, PathToDists, ConfigData, ImageDestinationDir)
 {
@@ -41,8 +41,8 @@ exports.GenerateFsImage = async function (DistLocation, PathToDists, ConfigData,
     var PlatformInfo = await GetBoardParameters(ConfigData.platform, SourceDistPath, FsParameters);
     FsParameters.push(ImageDestinationDir + "/fs.bin"); // must be last
 
-    var OSBin = path.join(DistLocation, "bin"); 
-    let osVersion = os.version().toLowerCase(); 
+    var OSBin = path.join(DistLocation, "bin");
+    let osVersion = os.version().toLowerCase();
     let exeName = "";
     if(-1 !== osVersion.indexOf("windows"))
     {
@@ -118,7 +118,7 @@ async function GetBoardParameters(platformName, DistLocation, FsParameters)
     {
         console.error("FS GetBoardParameters: No boards defined in firmware file.");
     }
-    
+
     // console.info("FS GetBoardParameters: Done:");
     return SelectedPlatform;
 
