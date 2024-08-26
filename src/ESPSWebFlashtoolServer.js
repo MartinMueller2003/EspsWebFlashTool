@@ -6,6 +6,7 @@ var https = require('https');
 const cors = require("cors");
 const path = require('path');
 const manifest = require('./manifest.js');
+const efu = require('./EFUimage.js');
 const BinImage = require('./BinImage.js');
 const PORT = 5000;
 
@@ -109,6 +110,20 @@ app.post(ApiHdr + "firmware", async function (req, res)
     logger.info("Download filepath: " + filepath);
 
     res.download( filepath );
+});
+
+// create an EFU mono file and a manifest for it
+app.post(ApiHdr + "efu", async function (req, res)
+{
+    var RootUrl = ApiHdr + "sessions/";
+
+    // console.info("manifest body: " + JSON.stringify(req.body));
+    // logger.info("manifest body: " + JSON.stringify(req.body));
+    // logger.info("manifest hostname: " + req.hostname);
+    // logger.info("manifest RootUrl: " + RootUrl);
+    logger.info("Generate EFU");
+    var responseData = await efu.GenerateEfuImage (PathToTools, PathToDistList, req.body, PathToSessionData, RootUrl);
+    res.send( responseData );
 });
 
 app.use(Express.static(PathToHtmlData));
