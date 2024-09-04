@@ -89,10 +89,11 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
     // console.info("AdjustedConfigData: '" + JSON.stringify(ConfigData) + "'");
 
     var PlatformInfo = await FSimage.GenerateFsImage(ToolsLocation, PathToDists, ConfigData, ImageDestinationDir);
+    // console.info("PlatformInfo: '" + JSON.stringify(PlatformInfo) + "'");
     const FirmwarePath = path.join(path.join(PathToDists, "ESPixelStick_Firmware-" + ConfigData.version.name), "firmware");
     // console.info("FirmwarePath: '" + FirmwarePath + "'");
     const FsImageTarget = path.join(ImageDestinationDir, "fs.bin");
-    console.info("Make FS image - done: " + fs.statfsSync(FsImageTarget));
+    console.info("Make FS image - done: ");
 
     console.info("create the combined FS + Bin image");
     MergeParameters = [];
@@ -121,7 +122,7 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
     // console.info("MergeParameters: " + MergeParameters);
     spawnSync("ls -al", { stdio: 'inherit' });
     const Process = spawnSync("python3", MergeParameters, { stdio: 'inherit' });
-    console.info("make the combined image - done: " + fs.statfsSync(BinImageTarget));
+    console.info("make the combined image - done: ");
 
     // build the URLs
     const SessionUrl = RootUrl + SessionDir;
