@@ -3,48 +3,33 @@
  */
 
 const fs = require("fs");
-const path = require('path'); 
+const path = require('path');
 
-exports.GenerateVersionList = async function (DistLocation, response)
+const GenerateVersionList = async function (DistLocation, Response)
 {
     // console.info("GenerateVersionList: DistLocation: '" + DistLocation + "'");
 
     // for each dist in the directory
-    fs.readdir(DistLocation, function (err, files) 
+    fs.readdirSync(DistLocation).forEach(file =>
     {
-        if (err) 
-        {
-          // console.error("Could not list the directory.", err);
-          process.exit(1);
-        }
-      
-        files.forEach(function (file, index) 
-        {
-            // Make one pass and make the file complete
-            var DistPath = path.join(DistLocation, file);
-      
-            fs.stat(DistPath, async function (error, stat) 
-            {
-                if (error) 
-                {
-                    // console.error("Error 'stat'ing Directory: " + DistPath);
-                }
+        // Make one pass and make the file complete
+        var DistPath = path.join(DistLocation, file);
 
-                if (!stat.isDirectory())
-                {
-                    // console.error("Not a directory: " + DistPath);
-                }
-                // console.info("Processing '" + DistPath + "'");
-                // console.info("file '" + file + "'");
-                let Constant = "ESPixelStick_Firmware-";
-                let TargetVersion = file.substring(Constant.length);
-                // console.info("TargetVersion '" + TargetVersion + "'");
-                await GetBuildDate(DistPath, TargetVersion, response);
-            });
-        });
+        let stat = fs.statSync(DistPath)
+
+        if (stat.isDirectory())
+        {
+            // console.info("Processing '" + DistPath + "'");
+            // console.info("file '" + file + "'");
+            let Constant = "ESPixelStick_Firmware-";
+            let TargetVersion = file.substring(Constant.length);
+            // console.info("TargetVersion '" + TargetVersion + "'");
+            GetBuildDate(DistPath, TargetVersion, Response);
+            // await GetBuildDate(DistPath, TargetVersion, Response);
+        }
     });
 
-    // console.info(JSON.stringify(response));
+    // console.info("GenerateVersionList: Response" + JSON.stringify(Response));
     // console.info("GenerateVersionList - Done");
     return;
 
@@ -122,9 +107,14 @@ const GetBuildDate = async (DistPath, TargetVersion, response) =>
         "time" : TimeString.replaceAll('"', "")
     });
 
-    // console.info(JSON.stringify(response));
+    // console.info("GetBuildDate:Response:" + JSON.stringify(response));
 
     return;
 } // GetBuildDate
 
+exports.AwaitGenerateVersionList = async function (DistLocation, Response)
+{
+    await GenerateVersionList(DistLocation, Response);
+    // console.info("GenerateVersionList: Response" + JSON.stringify(Response));
 
+} // GenerateVersionList

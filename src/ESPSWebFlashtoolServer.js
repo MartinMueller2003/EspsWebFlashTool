@@ -51,8 +51,9 @@ logger.info('Log system Started');
 
 manifest.begin(PathToSessionData);
 var VersionList = [];
-BinImage.GenerateVersionList(PathToDistList, VersionList);
-logger.info("GenerateVersionList - Done");
+// logger.info("Generate Initial Version List");
+// BinImage.AwaitGenerateVersionList(PathToDistList, VersionList);
+// console.info("versions: " + JSON.stringify(VersionList));
 
 app.use(cors());
 app.use(bodyParser.urlencoded({  extended: true }));
@@ -84,9 +85,11 @@ app.post(ApiHdr + "manifest", async function (req, res)
 // process a request to get a list of versions we can supply.
 app.get(ApiHdr + "versions", async function (req, res)
 {
-    BinImage.GenerateVersionList(PathToDistList, VersionList);
-    logger.info("GenerateVersionList - Done");
-    // logger.info("versions: " + JSON.stringify(VersionList));
+    logger.info("Generate Version List");
+    VersionList.length = 0;
+    // console.info("Generate Version List");
+    BinImage.AwaitGenerateVersionList(PathToDistList, VersionList);
+    // console.info("versions: " + JSON.stringify(VersionList));
     res.send( JSON.stringify(VersionList) );
 });
 
