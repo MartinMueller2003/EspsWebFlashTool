@@ -64,6 +64,11 @@ exports.GenerateFsImage = async function (DistLocation, PathToDists, ConfigData,
         OSBin = path.join(OSBin, "macos");
         exeName = "mklittlefs";
     }
+    else if(-1 !== osVersion.indexOf("pmx"))
+    {
+        OSBin = path.join(OSBin, "linux64");
+        exeName = "mklittlefs";
+    }
     else
     {
         console.error("Could not determine OS type. Got: '" + osVersion + "'");
