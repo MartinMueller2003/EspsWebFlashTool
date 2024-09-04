@@ -95,6 +95,7 @@ $(function ()
         }
         $('#btn_flash').prop("disabled", !ValidateConfigFields());
         $('#efu_create').prop("disabled", !ValidateConfigFields());
+        $('#efu_ota').prop("disabled", !ValidateConfigFields());
     }));
 
     $('#eth #dhcp').on("change", (function () {
@@ -107,12 +108,14 @@ $(function ()
         }
         $('#btn_flash').prop("disabled", !ValidateConfigFields());
         $('#efu_create').prop("disabled", !ValidateConfigFields());
+        $('#efu_ota').prop("disabled", !ValidateConfigFields());
     }));
 
     $('#network').on("input", (function () {
         // console.info("Change on network page");
         $('#btn_flash').prop("disabled", !ValidateConfigFields());
         $('#efu_create').prop("disabled", !ValidateConfigFields());
+        $('#efu_ota').prop("disabled", !ValidateConfigFields());
     }));
 
     $('#btn_flash').on("click", (function () {
@@ -121,6 +124,10 @@ $(function ()
 
     $('#efu_create').on("click", (function () {
         GetEfuImage();
+    }));
+
+    $('#efu_ota').on("click", (function () {
+        EfuOtaUpdate();
     }));
 
     $('#VersionSelector').on("change", (function () {
@@ -190,7 +197,7 @@ async function RequestFirmwareImageManifestUrl()
 
 async function RequestEfuFirmwareImageManifestUrl()
 {
-    console.log("RequestEfuFirmwareImageManifestUrl");
+    // console.info("RequestEfuFirmwareImageManifestUrl");
 
     let EfuRequest = {};
     EfuRequest.system = System_Config;
@@ -209,7 +216,7 @@ async function RequestEfuFirmwareImageManifestUrl()
     await $.post("HTTPS://" + target + ApiHdr + "efu" , EfuRequest, function(data)
     {
         EfuFirmwareImageManifestUrl = data;
-        console.log("RequestEfuFirmwareImageManifestUrl reply: " + EfuFirmwareImageManifestUrl);
+        // console.info("RequestEfuFirmwareImageManifestUrl reply: " + EfuFirmwareImageManifestUrl);
         return true;
     })
     .fail(function()
@@ -226,9 +233,9 @@ async function RequestEfuFirmwareImageManifest()
     let data = "";
     await $.getJSON("HTTPS://" + target + EfuFirmwareImageManifestUrl, async function(data)
     {
-        console.log("RequestEfuFirmwareImageManifest: " + JSON.stringify(data));
+        // console.info("RequestEfuFirmwareImageManifest: " + JSON.stringify(data));
         EfuImageUrl = data.builds[0].parts[0].path;
-        console.info("EfuImageUrl: " + EfuImageUrl);
+        // console.info("EfuImageUrl: " + EfuImageUrl);
         return true;
     })
     .fail(function()
@@ -241,7 +248,7 @@ async function RequestEfuFirmwareImageManifest()
 
 function RequestEfuFirmwareImage()
 {
-    console.log("RequestEfuFirmwareImage");
+    // console.info("RequestEfuFirmwareImage");
     const req = new XMLHttpRequest();
     let url = "HTTPS://" + target + EfuImageUrl;
     req.open("GET", url, true);
@@ -251,42 +258,77 @@ function RequestEfuFirmwareImage()
     {
         EfuImageData = req.response;
         console.info("EfuImageData.size: " + EfuImageData.size);
-        SaveEfuFirmwareImage();
+        if(null !== EfuFileHandle)
+        {
+            SaveEfuFirmwareImage();
+        }
+        else
+        {
+            TransmitEfuImageToDevice();
+        }
     };
     req.send();
 } // RequestEfuFirmwareImage
 
-async function xRequestEfuFirmwareImage()
-{
-    console.log("RequestEfuFirmwareImage");
-    let url = "HTTPS://" + target + EfuImageUrl;
-    await $.get({url: url,
-                 processData: 'false',
-                 responseType: 'blob'}, async function(data)
-    {
-        console.info("data.length: " + data.length);
-        // EfuImageData = new Blob([data], {type: "image/png"});
-        EfuImageData = data;
-        console.info("EfuImageData.length: " + EfuImageData.length);
-        SaveEfuFirmwareImage();
-        return true;
-    })
-    .fail(function()
-    {
-        console.error("Could not get EFU Image");
-        return false;
-    });
-
-} // RequestEfuFirmwareImage
-
 async function SaveEfuFirmwareImage()
 {
-    console.info("SaveEfuFirmwareImage");
+    // console.info("SaveEfuFirmwareImage");
     const writableStream = await EfuFileHandle.createWritable();
     await writableStream.write(EfuImageData);
     await writableStream.close();
     window.alert("Save EFU Complete");
 } // SaveEfuFirmwareImage
+
+async function TransmitEfuImageToDevice()
+{
+    console.info("TransmitEfuImageToDevice");
+    let TargetDeviceIp = $('#ota_ip').val();
+    console.info("ota_ip: " + TargetDeviceIp);
+
+    let FileXfer = new XMLHttpRequest();
+    FileXfer.upload.addEventListener("progress", progressHandler, false);
+    FileXfer.addEventListener("load", completeHandler, false);
+    FileXfer.addEventListener("error", errorHandler, false);
+    FileXfer.addEventListener("abort", abortHandler, false);
+    FileXfer.open("POST", "https://" + TargetDeviceIp + "/updatefw");
+    FileXfer.send(EfuImageData);
+    $("#EfuProgressBar").value = 0; //will clear progress bar after successful upload
+    $("#EfuProgressBar").removeClass("hidden");
+
+    function _(el)
+    {
+        return document.getElementById(el);
+    }
+
+    function progressHandler(event)
+    {
+        let percent = (event.loaded / event.total) * 100;
+        _("EfuProgressBar").value = Math.round(percent);
+    }
+
+    function completeHandler(event)
+    {
+        console.info("Status: " + event.target.responseText);
+        $("#EfuProgressBar").value = 0; //will clear progress bar after successful upload
+        $("#EfuProgressBar").addClass("hidden");
+    }
+
+    function errorHandler(event)
+    {
+        console.error("EFU Transfer Error");
+        console.info("Status: " + event.target.responseText);
+        $("#EfuProgressBar").addClass("hidden");
+        window.alert("EFU Transfer Error");
+    }
+
+    function abortHandler(event)
+    {
+        console.error("EFU Transfer Abort");
+        console.info("Status: " + event.target.responseText);
+        $("#EfuProgressBar").addClass("hidden");
+        window.alert("EFU Transfer Abort");
+    }
+} // TransmitEfuImageToDevice
 
 async function ReleaseManifest()
 {
@@ -354,6 +396,7 @@ function ProcessReceivedJsonConfigMessage(JsonConfigData) {
     // console.info("ProcessReceivedJsonConfigMessage: Done");
     $('#btn_flash').prop("disabled", !ValidateConfigFields());
     $('#efu_create').prop("disabled", !ValidateConfigFields());
+    $('#efu_ota').prop("disabled", !ValidateConfigFields());
 
 } // ProcessReceivedJsonConfigMessage
 
@@ -578,7 +621,7 @@ async function GetFlashImage()
 
 async function GetEfuImage()
 {
-    console.info("Set up manifest");
+    // console.info("Set up manifest");
 
     // get the current configuration
     ExtractNetworkConfigFromHtmlPage();
@@ -586,7 +629,7 @@ async function GetEfuImage()
     // ask for a place to save the image
     const opts =
     {
-        suggestedName: 'foo.efu',
+        suggestedName: $('#devicename'),
         types: [
           {
             description: "EFU Image file",
@@ -595,7 +638,24 @@ async function GetEfuImage()
         ],
       };
     EfuFileHandle = await showSaveFilePicker();
-    console.info("EfuFileHandle: " + EfuFileHandle);
+    // console.info("EfuFileHandle: " + EfuFileHandle);
+
+    // Ask the server to create an image and manifest
+    await RequestEfuFirmwareImageManifestUrl();
+    await RequestEfuFirmwareImageManifest();
+    await RequestEfuFirmwareImage();
+
+} // GetEfuImage
+
+async function EfuOtaUpdate()
+{
+    console.info("EfuOtaUpdate");
+
+    // get the current configuration
+    ExtractNetworkConfigFromHtmlPage();
+
+    EfuFileHandle = null
+    // console.info("EfuFileHandle: " + EfuFileHandle);
 
     // Ask the server to create an image and manifest
     await RequestEfuFirmwareImageManifestUrl();
