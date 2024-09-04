@@ -139,4 +139,5 @@ var options = {
     cert: fs.readFileSync(path.join(PathToCerts, 'cert.pem'))
   };
 https.createServer(options, app).listen(PORT);
+console.info("Server Init Done.");
 logger.info("Server Init Done.");
