@@ -5,5 +5,6 @@ if [ $NumTasks -ne 0 ]; then
   echo "Process is running."
 else
   echo "Process is not running. Starting Process"
-  npm run start &
+  MyPath=$(dirname $(readlink -f "$0"))
+  (cd $MyPath; npm run start &)
 fi
