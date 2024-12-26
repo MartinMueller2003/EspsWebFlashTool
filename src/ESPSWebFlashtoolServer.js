@@ -37,8 +37,8 @@ const logger = Winston.createLogger(
             format.printf(info => `${info.timestamp}: ${info.message}`)
         ),
         transports:
-        [   // use console for debugging
-            // new Winston.transports.Console(),
+        [   // use logger for debugging
+            // new Winston.transports.logger(),
             new Winston.transports.File(
             {
                 filename: LogFileName,
@@ -49,11 +49,11 @@ const logger = Winston.createLogger(
     });
 logger.info('Log system Started');
 
-manifest.begin(PathToSessionData);
+manifest.begin(PathToSessionData, logger);
 var VersionList = [];
 // logger.info("Generate Initial Version List");
-// BinImage.AwaitGenerateVersionList(PathToDistList, VersionList);
-// console.info("versions: " + JSON.stringify(VersionList));
+// BinImage.AwaitGenerateVersionList(PathToDistList, VersionList, logger);
+// logger.info("versions: " + JSON.stringify(VersionList));
 
 app.use(cors());
 app.use(bodyParser.urlencoded({  extended: true }));
@@ -73,12 +73,12 @@ app.post(ApiHdr + "manifest", async function (req, res)
 {
     var RootUrl = ApiHdr + "sessions/";
 
-    // console.info("manifest body: " + JSON.stringify(req.body));
+    // logger.info("manifest body: " + JSON.stringify(req.body));
     // logger.info("manifest body: " + JSON.stringify(req.body));
     // logger.info("manifest hostname: " + req.hostname);
     // logger.info("manifest RootUrl: " + RootUrl);
     logger.info("Generate manifest");
-    var responseData = await manifest.GenerateImageAndManifest (PathToTools, PathToDistList, req.body, PathToSessionData, RootUrl);
+    var responseData = await manifest.GenerateImageAndManifest (PathToTools, PathToDistList, req.body, PathToSessionData, RootUrl, logger);
     res.send( responseData );
 });
 
@@ -87,9 +87,9 @@ app.get(ApiHdr + "versions", async function (req, res)
 {
     logger.info("Generate Version List");
     VersionList.length = 0;
-    // console.info("Generate Version List");
-    BinImage.AwaitGenerateVersionList(PathToDistList, VersionList);
-    // console.info("versions: " + JSON.stringify(VersionList));
+    // logger.info("Generate Version List");
+    BinImage.AwaitGenerateVersionList(PathToDistList, VersionList, logger);
+    // logger.info("versions: " + JSON.stringify(VersionList));
     res.send( JSON.stringify(VersionList) );
 });
 
@@ -100,7 +100,7 @@ app.delete(ApiHdr + "sessions", async function (req, res)
     let url = req.body.manifest;
     session = url.replace(ApiHdr + "sessions/", "");
     session = session.substr(0,session.lastIndexOf("/"));
-    var responseData = await manifest.DeleteImageAndManifest (session, PathToSessionData);
+    var responseData = await manifest.DeleteImageAndManifest (session, PathToSessionData, logger);
     res.sendStatus( responseData );
 });
 
@@ -120,12 +120,12 @@ app.post(ApiHdr + "efu", async function (req, res)
 {
     var RootUrl = ApiHdr + "sessions/";
 
-    // console.info("manifest body: " + JSON.stringify(req.body));
+    // logger.info("manifest body: " + JSON.stringify(req.body));
     // logger.info("manifest body: " + JSON.stringify(req.body));
     // logger.info("manifest hostname: " + req.hostname);
     // logger.info("manifest RootUrl: " + RootUrl);
     logger.info("Generate EFU");
-    var responseData = await efu.GenerateEfuImage (PathToTools, PathToDistList, req.body, PathToSessionData, RootUrl);
+    var responseData = await efu.GenerateEfuImage (PathToTools, PathToDistList, req.body, PathToSessionData, RootUrl, logger);
     res.send( responseData );
 });
 
@@ -139,5 +139,4 @@ var options = {
     cert: fs.readFileSync(path.join(PathToCerts, 'cert.pem'))
   };
 https.createServer(options, app).listen(PORT);
-console.info("Server Init Done.");
 logger.info("Server Init Done.");

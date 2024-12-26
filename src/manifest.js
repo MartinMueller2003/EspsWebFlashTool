@@ -10,12 +10,12 @@ const spawnSync = require("child_process").spawnSync;
 const FSimage = require('./FSimage.js');
 
 // manage the directories created and delete after N minutes since last use
-exports.begin = function (ImageDestinationDir)
+exports.begin = function (ImageDestinationDir, logger)
 {
     // clean up past directories
     if(fs.existsSync(ImageDestinationDir))
     {
-        console.info("Delete old sessions");
+        logger.info("Delete old sessions");
         fs.rmSync(ImageDestinationDir, { recursive: true });
     }
 
@@ -23,8 +23,8 @@ exports.begin = function (ImageDestinationDir)
 
     setInterval(function()
     {
-        // console.info("Interval reached every Hour");
-        // console.info("Date(): '" + new Date().getTime() + "'");
+        // logger.info("Interval reached every Hour");
+        // logger.info("Date(): '" + new Date().getTime() + "'");
 
         // scan the existing directories
         const files = fs.readdirSync(ImageDestinationDir, { withFileTypes: true });
@@ -36,32 +36,32 @@ exports.begin = function (ImageDestinationDir)
                 const filePath = path.join(ImageDestinationDir, file.name);
                 const stats = fs.statSync(filePath);
                 const deltaTime = new Date().getTime() - stats.atime.getTime();
-                // console.info("filePath: '" + filePath + "'");
-                // console.info("stats.atime: '" + stats.atime.getTime() + "'");
-                // console.info("MaxAgeInMs: '" + MaxAgeInMs + "'");
-                // console.info("deltaTime: '" + deltaTime + "'");
+                // logger.info("filePath: '" + filePath + "'");
+                // logger.info("stats.atime: '" + stats.atime.getTime() + "'");
+                // logger.info("MaxAgeInMs: '" + MaxAgeInMs + "'");
+                // logger.info("deltaTime: '" + deltaTime + "'");
 
                 // has it been hanging around too long?
                 if(deltaTime > MaxAgeInMs)
                 {
-                    // console.info("clean up the directory");
+                    // logger.info("clean up the directory");
                     fs.rmSync(filePath, { force: true, recursive: true });
                 }
             }
             else
             {
-                // console.info("no files allowed in this directory");
+                // logger.info("no files allowed in this directory");
                 fs.rmSync(filePath, { force: true, recursive: true });
             }
         }
     }, MaxAgeInMs);
 }; // begin
 
-exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, ConfigData, ImageDestinationDir, RootUrl)
+exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, ConfigData, ImageDestinationDir, RootUrl, logger)
 {
-    // console.info("DistLocation: '" + DistLocation + "'");
-    // console.info("ConfigData: '" + ConfigData.platform + "'");
-    // console.info("ConfigData: '" + JSON.stringify(ConfigData) + "'");
+    // logger.info("DistLocation: '" + DistLocation + "'");
+    // logger.info("ConfigData: '" + ConfigData.platform + "'");
+    // logger.info("ConfigData: '" + JSON.stringify(ConfigData) + "'");
 
     // This is the wrong way to fix this but I need a hack right now.
     ConfigData.system.requiresConfigSave = (ConfigData.system.requiresConfigSave === "true") ? true : false;
@@ -75,27 +75,27 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
 
     var SessionDir = crypto.randomBytes(16).toString('hex');
     ImageDestinationDir = path.join(ImageDestinationDir, SessionDir);
-    // console.info("ImageDestinationDir: '" + ImageDestinationDir + "'");
+    // logger.info("ImageDestinationDir: '" + ImageDestinationDir + "'");
     const BinImageTarget = path.join(ImageDestinationDir, "output.bin");
-    // console.info("BinImageTarget: '" + BinImageTarget + "'");
+    // logger.info("BinImageTarget: '" + BinImageTarget + "'");
 
     const UploadToolDir = path.join(ToolsLocation, "bin/upload.py");
-    // console.info("uploadToolDir: '" + UploadToolDir + "'");
+    // logger.info("uploadToolDir: '" + UploadToolDir + "'");
 
     // make the directory in which we will build the monolithic image
     fs.mkdirSync(ImageDestinationDir, { recursive: true });
 
-    console.info ("create the file system image");
-    // console.info("AdjustedConfigData: '" + JSON.stringify(ConfigData) + "'");
+    logger.info ("create the file system image");
+    // logger.info("AdjustedConfigData: '" + JSON.stringify(ConfigData) + "'");
 
-    var PlatformInfo = await FSimage.GenerateFsImage(ToolsLocation, PathToDists, ConfigData, ImageDestinationDir);
-    // console.info("PlatformInfo: '" + JSON.stringify(PlatformInfo) + "'");
+    var PlatformInfo = await FSimage.GenerateFsImage(ToolsLocation, PathToDists, ConfigData, ImageDestinationDir, logger);
+    // logger.info("PlatformInfo: '" + JSON.stringify(PlatformInfo) + "'");
     const FirmwarePath = path.join(path.join(PathToDists, "ESPixelStick_Firmware-" + ConfigData.version.name), "firmware");
-    // console.info("FirmwarePath: '" + FirmwarePath + "'");
+    // logger.info("FirmwarePath: '" + FirmwarePath + "'");
     const FsImageTarget = path.join(ImageDestinationDir, "fs.bin");
-    console.info("Make FS image - done: ");
+    logger.info("Make FS image - done: ");
 
-    console.info("create the combined FS + Bin image");
+    logger.info("create the combined FS + Bin image");
     MergeParameters = [];
     MergeParameters.push(UploadToolDir);
     MergeParameters.push("--chip");
@@ -119,18 +119,18 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
     MergeParameters.push(PlatformInfo.filesystem.offset);
     MergeParameters.push(FsImageTarget);
 
-    // console.info("MergeParameters: " + MergeParameters);
+    // logger.info("MergeParameters: " + MergeParameters);
     spawnSync("ls -al", { stdio: 'inherit' });
     const Process = spawnSync("python3", MergeParameters, { stdio: 'inherit' });
-    console.info("make the combined image - done: ");
+    logger.info("make the combined image - done: ");
 
     // build the URLs
     const SessionUrl = RootUrl + SessionDir;
     const ManifestUrl = SessionUrl + "/manifest.json";
     const BinUrl = SessionUrl + "/output.bin";
-    // console.info(" SessionUrl: " + SessionUrl);
-    // console.info("ManifestUrl: " + ManifestUrl);
-    // console.info("     BinUrl: " + BinUrl);
+    // logger.info(" SessionUrl: " + SessionUrl);
+    // logger.info("ManifestUrl: " + ManifestUrl);
+    // logger.info("     BinUrl: " + BinUrl);
 
     // make the manifest
     // read the manifest into memory
@@ -139,11 +139,11 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
     currentManifest.builds[0].parts[0].path = BinUrl;
 
     ManifestTarget = path.join(ImageDestinationDir, "manifest.json");
-    // console.info("ManifestTarget: " + ManifestTarget);
+    // logger.info("ManifestTarget: " + ManifestTarget);
     fs.writeFileSync (ManifestTarget, JSON.stringify(currentManifest), function(err)
     {
         if (err) throw err;
-        // console.log('complete');
+        // logger.log('complete');
     });
 
     // clean up the files to remove sensitive data
@@ -154,13 +154,13 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
 
 }; // GenerateImageAndManifest
 
-exports.DeleteImageAndManifest = async function (sessionId, PathToSessionData)
+exports.DeleteImageAndManifest = async function (sessionId, PathToSessionData, logger)
 {
     const ImageDestinationDir = path.join(PathToSessionData, sessionId);
 
-    // console.info("          sessionId: '" + sessionId + "'");
-    // console.info("  PathToSessionData: '" + PathToSessionData + "'");
-    // console.info("ImageDestinationDir: '" + ImageDestinationDir + "'");
+    // logger.info("          sessionId: '" + sessionId + "'");
+    // logger.info("  PathToSessionData: '" + PathToSessionData + "'");
+    // logger.info("ImageDestinationDir: '" + ImageDestinationDir + "'");
 
     if(fs.existsSync(ImageDestinationDir))
     {
@@ -170,4 +170,3 @@ exports.DeleteImageAndManifest = async function (sessionId, PathToSessionData)
     return 200;
 
 } // DeleteImageAndManifest
-

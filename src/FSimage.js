@@ -7,10 +7,10 @@ const path = require('path');
 const spawnSync = require("child_process").spawnSync;
 const os = require("os");
 
-exports.GenerateFsImage = async function (DistLocation, PathToDists, ConfigData, ImageDestinationDir)
+exports.GenerateFsImage = async function (DistLocation, PathToDists, ConfigData, ImageDestinationDir, logger)
 {
-    // console.info("FS DistLocation: '" + DistLocation + "'");
-    // console.info("FS ConfigData: '" + ConfigData.platform + "'");
+    // logger.info("FS DistLocation: '" + DistLocation + "'");
+    // logger.info("FS ConfigData: '" + ConfigData.platform + "'");
 
     var response = {};
     response.platform = ConfigData.platform;
@@ -19,9 +19,12 @@ exports.GenerateFsImage = async function (DistLocation, PathToDists, ConfigData,
     const SourceDistPath = path.join(PathToDists, "ESPixelStick_Firmware-" + ConfigData.version.name);
     const HtmlSourcePath = path.join(SourceDistPath, "fs");
 
-    // console.info("FS HtmlTargetPath: '" + HtmlTargetPath + "'");
-    // console.info("FS SourceDistPath: '" + SourceDistPath + "'");
-    // console.info("FS HtmlSourcePath: '" + HtmlSourcePath + "'");
+    // logger.info("FS HtmlTargetPath: '" + HtmlTargetPath + "'");
+    // logger.info("FS SourceDistPath: '" + SourceDistPath + "'");
+    // logger.info("FS HtmlSourcePath: '" + HtmlSourcePath + "'");
+
+    // make sure the directory is gone
+    fs.rmSync(HtmlTargetPath, { recursive: true, force: true });
 
     // set up the directory in which we will build the FS
     fs.mkdirSync(HtmlTargetPath, { recursive: true });
@@ -29,7 +32,7 @@ exports.GenerateFsImage = async function (DistLocation, PathToDists, ConfigData,
     // get the FS files
     fs.cpSync(HtmlSourcePath + "/", HtmlTargetPath, { recursive : true, force : true });
 
-    // minify the FS files - This step s not needed. The dist comes with the files minified and compressed
+    // minify the FS files - This step is not needed. The dist comes with the files minified and compressed
 
     // save the config data
     fs.writeFileSync(path.join(HtmlTargetPath, "config.json"), JSON.stringify(ConfigData));
@@ -38,7 +41,7 @@ exports.GenerateFsImage = async function (DistLocation, PathToDists, ConfigData,
     let FsParameters = [];
     FsParameters.push("-c");
     FsParameters.push(HtmlTargetPath);
-    var PlatformInfo = await GetBoardParameters(ConfigData.platform, SourceDistPath, FsParameters);
+    var PlatformInfo = await GetBoardParameters(ConfigData.platform, SourceDistPath, FsParameters, logger);
     FsParameters.push(ImageDestinationDir + "/fs.bin"); // must be last
 
     var OSBin = path.join(DistLocation, "bin");
@@ -71,44 +74,45 @@ exports.GenerateFsImage = async function (DistLocation, PathToDists, ConfigData,
     }
     else
     {
-        console.error("Could not determine OS type. Got: '" + osVersion + "'");
+        logger.error("Could not determine OS type. Got: '" + osVersion + "'");
         return;
     }
 
-    // console.info("osVersion: " + osVersion);
-    // console.info("OSBin: " + OSBin);
+    // logger.info("   osVersion: " + osVersion);
+    // logger.info("       OSBin: " + OSBin);
     const ExePath = path.join(OSBin, exeName);
-    // console.info("ExePath: " + ExePath);
+    // logger.info("     ExePath: " + ExePath);
+    logger.info("FsParameters: " + FsParameters);
 
     // make the fs image
     // const Process = spawnSync(ExePath, FsParameters, { stdio: 'inherit' });
     const Process = spawnSync(ExePath, FsParameters);
 
-    // console.info("GenerateFsImage - Done:" + fs.statSync(ImageDestinationDir + "/fs.bin"));
+    // logger.info("GenerateFsImage - Done:" + fs.statSync(ImageDestinationDir + "/fs.bin"));
     return PlatformInfo;
 
 }; // GenerateFsImage
 
-async function GetBoardParameters(platformName, DistLocation, FsParameters)
+async function GetBoardParameters(platformName, DistLocation, FsParameters, logger)
 {
-    // console.info("FS GetBoardParameters: platformName: '" + platformName + "'");
+    // logger.info("FS GetBoardParameters: platformName: '" + platformName + "'");
 
     // read the firmware description file.
     const FirmWareConfig = JSON.parse(fs.readFileSync( DistLocation + "/firmware/firmware.json", 'utf8'));
 
-    // console.info("FS GetBoardParameters: Data: " + JSON.stringify(FirmWareConfig));
+    // logger.info("FS GetBoardParameters: Data: " + JSON.stringify(FirmWareConfig));
     if ({}.hasOwnProperty.call(FirmWareConfig, "boards"))
     {
-        // console.info("FS GetBoardParameters: Found the boards array");
+        // logger.info("FS GetBoardParameters: Found the boards array");
         var FirmwareBoards = FirmWareConfig.boards;
         var SelectedPlatform =null;
 
         FirmwareBoards.forEach (function (CurrentBoard)
         {
-            // console.info("FS GetBoardParameters: CurrentBoard.name: " + CurrentBoard.name);
+            // logger.info("FS GetBoardParameters: CurrentBoard.name: " + CurrentBoard.name);
             if(platformName === CurrentBoard.name)
             {
-                // console.info("FS GetBoardParameters: Found the board");
+                // logger.info("FS GetBoardParameters: Found the board");
                 SelectedPlatform = CurrentBoard;
                 FsParameters.push("-p");
                 FsParameters.push(CurrentBoard.filesystem.page);
@@ -116,15 +120,16 @@ async function GetBoardParameters(platformName, DistLocation, FsParameters)
                 FsParameters.push(CurrentBoard.filesystem.block);
                 FsParameters.push("-s");
                 FsParameters.push(CurrentBoard.filesystem.size);
+                logger.info("filesystem.size: " + CurrentBoard.filesystem.size);
             }
         });
     }
     else
     {
-        console.error("FS GetBoardParameters: No boards defined in firmware file.");
+        logger.error("FS GetBoardParameters: No boards defined in firmware file.");
     }
 
-    // console.info("FS GetBoardParameters: Done:");
+    // logger.info("FS GetBoardParameters: Done:");
     return SelectedPlatform;
 
 } // GetBoardParameters

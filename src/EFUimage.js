@@ -13,11 +13,11 @@ const VERSION = 1;
 const SKETCH_IMAGE = 1;
 const FS_IMAGE = 2;
 
-exports.GenerateEfuImage = async function (ToolsLocation, PathToDists, ConfigData, ImageDestinationDir, RootUrl)
+exports.GenerateEfuImage = async function (ToolsLocation, PathToDists, ConfigData, ImageDestinationDir, RootUrl, logger)
 {
-    // console.info("EFU: ToolsLocation: '" + ToolsLocation + "'");
-    // console.info("EFU:    ConfigData: '" + ConfigData.platform + "'");
-    // console.info("EFU:    ConfigData: '" + JSON.stringify(ConfigData) + "'");
+    // logger.info("EFU: ToolsLocation: '" + ToolsLocation + "'");
+    // logger.info("EFU:    ConfigData: '" + ConfigData.platform + "'");
+    // logger.info("EFU:    ConfigData: '" + JSON.stringify(ConfigData) + "'");
 
     // This is the wrong way to fix this but I need a hack right now.
     ConfigData.system.requiresConfigSave = (ConfigData.system.requiresConfigSave === "true") ? true : false;
@@ -31,21 +31,21 @@ exports.GenerateEfuImage = async function (ToolsLocation, PathToDists, ConfigDat
 
     let SessionDir = crypto.randomBytes(16).toString('hex');
     ImageDestinationDir = path.join(ImageDestinationDir, SessionDir);
-    console.info("EFU: ImageDestinationDir: '" + ImageDestinationDir + "'");
+    logger.info("EFU: ImageDestinationDir: '" + ImageDestinationDir + "'");
 
     const UploadToolDir = path.join(ToolsLocation, "bin/upload.py");
-    // console.info("EFU: uploadToolDir: '" + UploadToolDir + "'");
+    // logger.info("EFU: uploadToolDir: '" + UploadToolDir + "'");
 
     // make the directory in which we will build the monolithic image
     fs.mkdirSync(ImageDestinationDir, { recursive: true });
 
-    console.info ("EFU: create the file system image");
-    // console.info("EFU: AdjustedConfigData: '" + JSON.stringify(ConfigData) + "'");
+    logger.info ("EFU: create the file system image");
+    // logger.info("EFU: AdjustedConfigData: '" + JSON.stringify(ConfigData) + "'");
 
     const FsSourcePath = path.join(ImageDestinationDir, "fs.bin");
-    console.info("EFU: FsSourcePath: '" + FsSourcePath + "'");
-    var PlatformInfo = await FSimage.GenerateFsImage(ToolsLocation, PathToDists, ConfigData, ImageDestinationDir);
-    console.info("EFU: Make FS image - done");
+    logger.info("EFU: FsSourcePath: '" + FsSourcePath + "'");
+    var PlatformInfo = await FSimage.GenerateFsImage(ToolsLocation, PathToDists, ConfigData, ImageDestinationDir, logger);
+    logger.info("EFU: Make FS image - done");
 
     var FwSourcePath = "";
     var TargetName = "";
@@ -54,10 +54,10 @@ exports.GenerateEfuImage = async function (ToolsLocation, PathToDists, ConfigDat
     // search the files looking for the app.bin file
     for(currentFileIndex in PlatformInfo.binfiles)
     {
-        // console.info("EFU: currentFile: " + PlatformInfo.binfiles[currentFileIndex].name);
+        // logger.info("EFU: currentFile: " + PlatformInfo.binfiles[currentFileIndex].name);
         let headPosition = PlatformInfo.binfiles[currentFileIndex].name.search(/\//);
         let tailposition = PlatformInfo.binfiles[currentFileIndex].name.search(/-app.bin/);
-        // console.info("EFU: tailposition: '" + tailposition + "'");
+        // logger.info("EFU: tailposition: '" + tailposition + "'");
 
         if(-1 !== tailposition)
         {
@@ -67,19 +67,19 @@ exports.GenerateEfuImage = async function (ToolsLocation, PathToDists, ConfigDat
             EfuTarget = path.join(ImageDestinationDir, TargetName + ".efu");
         }
     }
-    console.info("EFU: EfuTarget: '" + EfuTarget + "'");
-    console.info("EFU: FwSourcePath: '" + FwSourcePath + "'");
+    logger.info("EFU: EfuTarget: '" + EfuTarget + "'");
+    logger.info("EFU: FwSourcePath: '" + FwSourcePath + "'");
     if("" === FwSourcePath)
     {
-        console.error("Could not get a valid Firmware image.");
+        logger.error("Could not get a valid Firmware image.");
         return "";
     }
-    console.info("EFU: create the combined FS + Bin image");
+    logger.info("EFU: create the combined FS + Bin image");
 
     let FsData = fs.readFileSync(FsSourcePath);
-    console.info("EFU:  FsData size: '" + FsData.length + "'");
+    logger.info("EFU:  FsData size: '" + FsData.length + "'");
     let BinData = fs.readFileSync(FwSourcePath);
-    console.info("EFU: BinData size: '" + BinData.length + "'");
+    logger.info("EFU: BinData size: '" + BinData.length + "'");
 
 /*
     Sketch + LittleFS combined OTA format
@@ -90,8 +90,12 @@ exports.GenerateEfuImage = async function (ToolsLocation, PathToDists, ConfigDat
         16bit record type
         32bit size
         {x bytes of data}
-*/
-    console.info("EFU: Write header");
+            ...
+        16bit record type
+        32bit size
+        {x bytes of data}
+ */
+    logger.info("EFU: Write header");
     let Offset = 0;
     var sigBuf = Buffer.alloc(4 + 2 + 2 + 4);
     sigBuf.write(SIGNATURE, Offset);              Offset = Offset + 3;
@@ -101,7 +105,7 @@ exports.GenerateEfuImage = async function (ToolsLocation, PathToDists, ConfigDat
     sigBuf.writeUInt32BE(BinData.length, Offset); Offset = Offset + 4;
     fs.writeFileSync(EfuTarget,sigBuf, { flag: "w" });
 
-    console.info("EFU: Write Sketch Image");
+    logger.info("EFU: Write Sketch Image");
     fs.writeFileSync(EfuTarget,BinData, { flag: "a+" });
 
     var fsRecordHeader = Buffer.alloc(2 + 4);
@@ -109,7 +113,7 @@ exports.GenerateEfuImage = async function (ToolsLocation, PathToDists, ConfigDat
     fsRecordHeader.writeUInt16BE(FS_IMAGE, offset);      offset = offset + 2;
     fsRecordHeader.writeUInt32BE(FsData.length, offset); offset = offset + 4
     fs.writeFileSync(EfuTarget, fsRecordHeader, { flag: "a+" });
-    console.info("EFU: Write FS Image");
+    logger.info("EFU: Write FS Image");
     fs.writeFileSync(EfuTarget, FsData, { flag: "a+" });
 /*
     // add file terminator
@@ -119,15 +123,15 @@ exports.GenerateEfuImage = async function (ToolsLocation, PathToDists, ConfigDat
     fs.writeFileSync(EfuTarget, fsRecordHeader, { flag: "a+" });
 */
     var FileStat = fs.statSync(EfuTarget);
-    console.info("EFU: Build Image Done. Size: " + FileStat.size);
+    logger.info("EFU: Build Image Done. Size: " + FileStat.size);
 
     // build the URLs
     const SessionUrl = RootUrl + SessionDir;
     const ManifestUrl = SessionUrl + "/manifest.json";
     const EfuUrl = SessionUrl + "/" + TargetName + ".efu";
-    console.info("EFU:  SessionUrl: " + SessionUrl);
-    console.info("EFU: ManifestUrl: " + ManifestUrl);
-    console.info("EFU:      EfuUrl: " + EfuUrl);
+    logger.info("EFU:  SessionUrl: " + SessionUrl);
+    logger.info("EFU: ManifestUrl: " + ManifestUrl);
+    logger.info("EFU:      EfuUrl: " + EfuUrl);
 
     // make the manifest
     // read the manifest into memory
@@ -136,11 +140,11 @@ exports.GenerateEfuImage = async function (ToolsLocation, PathToDists, ConfigDat
     currentManifest.builds[0].parts[0].path = EfuUrl;
 
     ManifestTarget = path.join(ImageDestinationDir, "manifest.json");
-    console.info("EFU: ManifestTarget: " + ManifestTarget);
+    logger.info("EFU: ManifestTarget: " + ManifestTarget);
     fs.writeFileSync (ManifestTarget, JSON.stringify(currentManifest), function(err)
     {
         if (err) throw err;
-        // console.log('complete');
+        // logger.log('complete');
     });
 
     // clean up the files to remove sensitive data
