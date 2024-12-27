@@ -625,11 +625,14 @@ async function GetEfuImage()
 
     // get the current configuration
     ExtractNetworkConfigFromHtmlPage();
+    var DeviceType =$('#BoardSelector').find(":selected").val();
+    // console.info("DeviceType: " + DeviceType);
 
     // ask for a place to save the image
     const opts =
     {
-        suggestedName: $('#devicename'),
+        suggestedName: DeviceType,
+        startIn: "downloads",
         types: [
           {
             description: "EFU Image file",
@@ -637,7 +640,7 @@ async function GetEfuImage()
           },
         ],
       };
-    EfuFileHandle = await showSaveFilePicker();
+    EfuFileHandle = await showSaveFilePicker(opts);
     // console.info("EfuFileHandle: " + EfuFileHandle);
 
     // Ask the server to create an image and manifest
