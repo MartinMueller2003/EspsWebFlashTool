@@ -41,7 +41,6 @@ const GetBuildDate = async (DistPath, TargetVersion, response, logger) =>
     // logger.info("GetBuildDate:TargetVersion: '" + TargetVersion + "'");
     // logger.info("     GetBuildDate:DistPath: '" + DistPath + "'");
 
-    TargetDate = "";
     // Get the espsv3 ESP8266 build
     var TargetBinPath = path.join(DistPath, "firmware/esp8266/espsv3-app.bin")
     // logger.info("GetBuildDate:TargetBinPath: '" + TargetBinPath + "'");
@@ -57,51 +56,67 @@ const GetBuildDate = async (DistPath, TargetVersion, response, logger) =>
     let DateString = "";
     let TimeString = "";
 
-    for(index = 0; index < bytes.length; index++)
+    let LcTargetVersionArray = TargetVersionArray;
+    LcTargetVersionArray = LcTargetVersionArray.toLowerCase();
+    // logger.info("LcTargetVersionArray: " + LcTargetVersionArray);
+
+    if(-1 !== LcTargetVersionArray.indexOf("experimental"))
     {
-        // find the 4.0-dev string
-        // logger.info("index: '" + index + "'");
-        // logger.info("slice: " + JSON.stringify(bytes.slice(index, index + TargetVersion.length)));
-        if(TargetVersionArray === JSON.stringify(bytes.slice(index, index + TargetVersion.length)))
+        // logger.info("This is an experimental version");
+        // use the creation date for the file insted of the build date
+        let fstat = fs.statSync(TargetBinPath);
+        DateString = fstat.birthtime.toLocaleDateString();
+        TimeString = fstat.birthtime.toLocaleTimeString();
+    }
+    else
+    {
+        for(index = 0; index < bytes.length; index++)
         {
-            // logger.info("Found at index: " + index);
-
-            // extract the build date
-            for(DateIndex = index + TargetVersion.length + 1; DateIndex < (index + TargetVersion.length + 50); DateIndex++)
+            // find the 4.0-dev string
+            // logger.info("index: '" + index + "'");
+            // logger.info("slice: " + JSON.stringify(bytes.slice(index, index + TargetVersion.length)));
+            if(TargetVersionArray === JSON.stringify(bytes.slice(index, index + TargetVersion.length)))
             {
-                const byteValue = bytes.charCodeAt(DateIndex).toString(16)
-                // logger.info(" byte: '" + bytes[DateIndex] + "' '" + byteValue + "'");
-                if("0" === byteValue)
-                {
-                    // logger.info("Date end Found at index: " + DateIndex);
-                    DateString = JSON.stringify(bytes.slice(index + TargetVersion.length + 1, DateIndex));
-                    // logger.info("DateString: " + DateString);
-                    // skip the time seperator
-                    index = DateIndex + 5; // null - null
-                    break;
-                }
-            } // end extract date
+                // logger.info("Found at index: " + index);
 
-            // extract the build time
-            for(TimeIndex = index; TimeIndex < index + 25; TimeIndex++)
-            {
-                const byteValue = bytes.charCodeAt(TimeIndex).toString(16)
-                // logger.info(" byte: '" + bytes[TimeIndex] + "' '" + byteValue + "'");
-                if("0" === byteValue)
+                // extract the build date
+                for(DateIndex = index + TargetVersion.length + 1; DateIndex < (index + TargetVersion.length + 50); DateIndex++)
                 {
-                    // logger.info("Time end Found at index: " + TimeIndex);
-                    TimeString = JSON.stringify(bytes.slice(index, TimeIndex));
-                    // logger.info("TimeString: " + TimeString);
-                    break;
+                    const byteValue = bytes.charCodeAt(DateIndex).toString(16)
+                    // logger.info(" byte: '" + bytes[DateIndex] + "' '" + byteValue + "'");
+                    if("0" === byteValue)
+                    {
+                        // logger.info("Date end Found at index: " + DateIndex);
+                        DateString = JSON.stringify(bytes.slice(index + TargetVersion.length + 1, DateIndex));
+                        // logger.info("DateString: " + DateString);
+                        // skip the time seperator
+                        index = DateIndex + 5; // null - null
+                        break;
+                    }
+                } // end extract date
+
+                // extract the build time
+                for(TimeIndex = index; TimeIndex < index + 25; TimeIndex++)
+                {
+                    const byteValue = bytes.charCodeAt(TimeIndex).toString(16)
+                    // logger.info(" byte: '" + bytes[TimeIndex] + "' '" + byteValue + "'");
+                    if("0" === byteValue)
+                    {
+                        // logger.info("Time end Found at index: " + TimeIndex);
+                        TimeString = JSON.stringify(bytes.slice(index, TimeIndex));
+                        // logger.info("TimeString: " + TimeString);
+                        break;
+                    }
                 }
-            }
-            // exit the search loop
-            break;
-        } // if(TargetVersionArray === JSON.stringify(bytes.slice(index, index + TargetVersion.length)))
+                // exit the search loop
+                break;
+            } // if(TargetVersionArray === JSON.stringify(bytes.slice(index, index + TargetVersion.length)))
+        }
     }
     // generate an entry in the response table
 
-    response.push({
+    response.push(
+    {
         "name" : TargetVersionArray.replaceAll('"', ""),
         "date" : DateString.replaceAll('"', ""),
         "time" : TimeString.replaceAll('"', "")
