@@ -62,7 +62,7 @@ const GetBuildDate = async (DistPath, TargetVersion, response, logger) =>
 
     if(-1 !== LcTargetVersionArray.indexOf("experimental"))
     {
-        // logger.info("This is an experimental version");
+        logger.info("This is an experimental version");
         // use the creation date for the file insted of the build date
         let fstat = fs.statSync(TargetBinPath);
         DateString = fstat.birthtime.toLocaleDateString();
@@ -78,16 +78,32 @@ const GetBuildDate = async (DistPath, TargetVersion, response, logger) =>
             if(TargetVersionArray === JSON.stringify(bytes.slice(index, index + TargetVersion.length)))
             {
                 // logger.info("Found at index: " + index);
+                // logger.info("slice: " + JSON.stringify(bytes.slice(index, index + TargetVersion.length)));
 
+                // advance past the version number
+                index += TargetVersion.length + 1;
+
+                // advance past any nulls
+                for(DateIndex = index; DateIndex < (index +50); DateIndex++)
+                {
+                    const byteValue = bytes.charCodeAt(DateIndex).toString(16)
+                    // logger.info(" byte: '" + bytes[DateIndex] + "' '" + byteValue + "'");
+                    if("0" !== byteValue)
+                    {
+                        // logger.info("Found the next string");
+                        index = DateIndex;
+                        break;
+                    }
+                }
                 // extract the build date
-                for(DateIndex = index + TargetVersion.length + 1; DateIndex < (index + TargetVersion.length + 50); DateIndex++)
+                for(DateIndex = index; DateIndex < (index + 50); DateIndex++)
                 {
                     const byteValue = bytes.charCodeAt(DateIndex).toString(16)
                     // logger.info(" byte: '" + bytes[DateIndex] + "' '" + byteValue + "'");
                     if("0" === byteValue)
                     {
                         // logger.info("Date end Found at index: " + DateIndex);
-                        DateString = JSON.stringify(bytes.slice(index + TargetVersion.length + 1, DateIndex));
+                        DateString = JSON.stringify(bytes.slice(index, DateIndex));
                         // logger.info("DateString: " + DateString);
                         // skip the time seperator
                         index = DateIndex + 5; // null - null
