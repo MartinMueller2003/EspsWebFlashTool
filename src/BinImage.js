@@ -46,8 +46,6 @@ const GetBuildDate = async (DistPath, TargetVersion, response, logger) =>
     // logger.info("GetBuildDate:TargetBinPath: '" + TargetBinPath + "'");
 
     const bytes = fs.readFileSync(TargetBinPath, { encoding: 'utf8', flag: 'r' });
-    // logger.info(" fileData: '" + fileData.length + "'");
-    // const bytes = fileData.buffer;
     // logger.info(" bytes: '" + bytes.length + "'");
 
     const TargetVersionArray = JSON.stringify(TargetVersion);
@@ -60,14 +58,43 @@ const GetBuildDate = async (DistPath, TargetVersion, response, logger) =>
     LcTargetVersionArray = LcTargetVersionArray.toLowerCase();
     // logger.info("LcTargetVersionArray: " + LcTargetVersionArray);
 
-    if(-1 !== LcTargetVersionArray.indexOf("experimental"))
+    index = bytes.indexOf("configFoundHere");
+    if(-1 !== index)
     {
-        logger.info("This is an experimental version");
+        // logger.info("Found config using indexOf");
+        // logger.info("index: '" + index + "'");
+
+        // advance past the key & version number
+        index += 32 + 32;
+
+        // find the seperator between date and time info
+        let DateEndIndex = bytes.indexOf(" - ", index);
+        // logger.info("       index: '" + index + "'");
+        // logger.info("DateEndIndex: '" + DateEndIndex + "'");
+
+        // extract date part
+        DateString = bytes.substring(index, DateEndIndex);
+        // logger.info("DateString: '" + DateString + "'");
+
+        // extract the time part
+        TimeStartIndex = DateEndIndex + 3;
+        TimeEndIndex = bytes.indexOf("\0", TimeStartIndex);
+        TimeString = bytes.substring(TimeStartIndex, TimeEndIndex);
+        // logger.info("TimeStartIndex: '" + TimeStartIndex + "'");
+        // logger.info("  TimeEndIndex: '" + TimeEndIndex + "'");
+        // logger.info("    TimeString: '" + TimeString + "'");
+    }
+
+    // next two sections are for legacy versions and will be removed once they are no longer in the upload list.
+    else if(-1 !== LcTargetVersionArray.indexOf("experimental"))
+    {
+        // logger.info("This is an experimental version");
         // use the creation date for the file insted of the build date
         let fstat = fs.statSync(TargetBinPath);
         DateString = fstat.birthtime.toLocaleDateString();
         TimeString = fstat.birthtime.toLocaleTimeString();
     }
+
     else
     {
         for(index = 0; index < bytes.length; index++)
