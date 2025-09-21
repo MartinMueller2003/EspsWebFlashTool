@@ -95,7 +95,7 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
     const FsImageTarget = path.join(ImageDestinationDir, "fs.bin");
     logger.info("Make FS image - done: ");
 
-    logger.info("create the combined FS + Bin image");
+    logger.info("Create the combined FS + Bin image");
     MergeParameters = [];
     MergeParameters.push(UploadToolDir);
     MergeParameters.push("--chip");
@@ -119,10 +119,10 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
     MergeParameters.push(PlatformInfo.filesystem.offset);
     MergeParameters.push(FsImageTarget);
 
-    // logger.info("MergeParameters: " + MergeParameters);
     spawnSync("ls -al", { stdio: 'inherit' });
+    logger.info("MergeParameters: " + MergeParameters);
     const Process = spawnSync("python3", MergeParameters, { stdio: 'inherit' });
-    logger.info("make the combined image - done: ");
+    logger.info("Create the combined image - done: ");
 
     // build the URLs
     const SessionUrl = RootUrl + SessionDir;
@@ -158,6 +158,7 @@ exports.DeleteImageAndManifest = async function (sessionId, PathToSessionData, l
 {
     const ImageDestinationDir = path.join(PathToSessionData, sessionId);
 
+    // logger.info("DeleteImageAndManifest");
     // logger.info("          sessionId: '" + sessionId + "'");
     // logger.info("  PathToSessionData: '" + PathToSessionData + "'");
     // logger.info("ImageDestinationDir: '" + ImageDestinationDir + "'");
