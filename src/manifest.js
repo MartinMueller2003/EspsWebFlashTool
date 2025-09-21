@@ -20,6 +20,7 @@ exports.begin = function (ImageDestinationDir, logger)
     }
 
     fs.mkdirSync(ImageDestinationDir);
+    fs.chmodSync(ImageDestinationDir, 0o777);
 
     setInterval(function()
     {
@@ -60,8 +61,8 @@ exports.begin = function (ImageDestinationDir, logger)
 exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, ConfigData, ImageDestinationDir, RootUrl, logger)
 {
     // logger.info("DistLocation: '" + DistLocation + "'");
-    // logger.info("ConfigData: '" + ConfigData.platform + "'");
-    // logger.info("ConfigData: '" + JSON.stringify(ConfigData) + "'");
+    // logger.info("    platform: '" + ConfigData.platform + "'");
+    // logger.info("  ConfigData: '" + JSON.stringify(ConfigData) + "'");
 
     // This is the wrong way to fix this but I need a hack right now.
     ConfigData.system.requiresConfigSave = (ConfigData.system.requiresConfigSave === "true") ? true : false;
@@ -84,6 +85,7 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
 
     // make the directory in which we will build the monolithic image
     fs.mkdirSync(ImageDestinationDir, { recursive: true });
+    fs.chmodSync(ImageDestinationDir, 0o777);
 
     logger.info ("create the file system image");
     // logger.info("AdjustedConfigData: '" + JSON.stringify(ConfigData) + "'");
@@ -122,6 +124,8 @@ exports.GenerateImageAndManifest = async function (ToolsLocation, PathToDists, C
     spawnSync("ls -al", { stdio: 'inherit' });
     logger.info("MergeParameters: " + MergeParameters);
     const Process = spawnSync("python3", MergeParameters, { stdio: 'inherit' });
+    // logger.info('Stdout:', Process.stdout.toString());
+    // logger.info('Stderr:', Process.stderr.toString());
     logger.info("Create the combined image - done: ");
 
     // build the URLs
